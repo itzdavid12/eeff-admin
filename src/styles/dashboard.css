@@ -1,0 +1,575 @@
+/* ==========================================
+   EEFF ADMIN DASHBOARD
+   Part 1/3
+========================================== */
+
+.dashboard-page{
+    display:flex;
+    flex-direction:column;
+    gap:30px;
+}
+
+.dashboard-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:20px;
+}
+
+.dashboard-header h1{
+    margin:0;
+    font-size:2.1rem;
+    font-weight:800;
+    color:#fff;
+}
+
+.dashboard-header p{
+    margin-top:8px;
+    color:#8f97a6;
+    font-size:.95rem;
+}
+
+/* ==========================
+   STATS GRID
+========================== */
+
+.stats-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:22px;
+}
+
+.stat-card{
+    position:relative;
+    overflow:hidden;
+    padding:24px;
+    border-radius:22px;
+    background:#171717;
+    border:1px solid rgba(255,255,255,.06);
+    transition:.35s;
+}
+
+.stat-card::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+    radial-gradient(circle at top right,
+    rgba(209,168,61,.12),
+    transparent 55%);
+    opacity:0;
+    transition:.35s;
+}
+
+.stat-card:hover{
+    transform:translateY(-6px);
+    border-color:rgba(209,168,61,.28);
+    box-shadow:
+    0 22px 45px rgba(0,0,0,.35);
+}
+
+.stat-card:hover::before{
+    opacity:1;
+}
+
+.stat-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:24px;
+}
+
+.stat-icon{
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid transparent;
+}
+
+.stat-icon.gold{
+    color:#D1A83D;
+    background:rgba(209,168,61,.08);
+    border-color:rgba(209,168,61,.20);
+}
+
+.stat-icon.blue{
+    color:#5FA8FF;
+    background:rgba(95,168,255,.08);
+    border-color:rgba(95,168,255,.20);
+}
+
+.stat-icon.purple{
+    color:#AE7BFF;
+    background:rgba(174,123,255,.08);
+    border-color:rgba(174,123,255,.20);
+}
+
+.stat-icon.orange{
+    color:#FF9933;
+    background:rgba(255,153,51,.08);
+    border-color:rgba(255,153,51,.20);
+}
+
+.stat-badge{
+    padding:6px 12px;
+    border-radius:999px;
+    background:rgba(43,191,113,.10);
+    color:#39d98a;
+    border:1px solid rgba(43,191,113,.25);
+    font-size:.72rem;
+    font-weight:700;
+}
+
+.stat-card h2{
+    margin:0;
+    color:#fff;
+    font-size:2.15rem;
+    font-weight:800;
+}
+
+.stat-card h4{
+    margin:12px 0 4px;
+    color:#cfd3dc;
+    font-size:1rem;
+    font-weight:600;
+}
+
+.stat-card p{
+    margin:0;
+    color:#8e96a4;
+    font-size:.88rem;
+}
+
+/* ==========================
+   MAIN GRID
+========================== */
+
+.dashboard-main{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+
+.recent-card,
+.activity-card{
+    background:#171717;
+    border-radius:24px;
+    border:1px solid rgba(255,255,255,.06);
+    overflow:hidden;
+}
+
+.card-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:26px 28px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+.card-header h2{
+    margin:0;
+    color:#fff;
+    font-size:1.25rem;
+}
+
+.card-header span{
+    display:block;
+    margin-top:5px;
+    color:#7f8897;
+    font-size:.82rem;
+}
+
+.card-header button{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 16px;
+    background:none;
+    border:none;
+    color:#D1A83D;
+    font-weight:700;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.card-header button:hover{
+    transform:translateX(4px);
+}
+/* ==========================================
+   EEFF ADMIN DASHBOARD
+   Part 2/3
+========================================== */
+
+/* ==========================
+   OFFERING TABLE
+========================== */
+
+.offering-table{
+    width:100%;
+}
+
+.table-head,
+.table-row{
+    display:grid;
+    grid-template-columns:2.2fr 1fr .8fr .8fr 1fr .9fr;
+    align-items:center;
+    gap:18px;
+    padding:20px 28px;
+}
+
+.table-head{
+    border-bottom:1px solid rgba(255,255,255,.05);
+    color:#737c8d;
+    font-size:.78rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+}
+
+.table-row{
+    border-bottom:1px solid rgba(255,255,255,.04);
+    transition:.25s;
+}
+
+.table-row:last-child{
+    border-bottom:none;
+}
+
+.table-row:hover{
+    background:rgba(255,255,255,.025);
+}
+
+.member-cell{
+    display:flex;
+    align-items:center;
+    gap:16px;
+}
+
+.member-avatar{
+    width:46px;
+    height:46px;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(209,168,61,.10);
+    color:#D1A83D;
+    border:1px solid rgba(209,168,61,.25);
+    font-weight:800;
+}
+
+.member-cell h4{
+    margin:0;
+    color:#fff;
+    font-size:.98rem;
+}
+
+.member-cell p{
+    margin-top:4px;
+    color:#7f8897;
+    font-size:.82rem;
+}
+
+.amount{
+    color:#FFD56A;
+    font-weight:800;
+}
+
+.status{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:108px;
+    padding:8px 16px;
+    border-radius:999px;
+    font-size:.78rem;
+    font-weight:700;
+}
+
+.status.approved{
+    color:#39d98a;
+    background:rgba(57,217,138,.10);
+    border:1px solid rgba(57,217,138,.22);
+}
+
+.status.pending{
+    color:#ffb14d;
+    background:rgba(255,177,77,.10);
+    border:1px solid rgba(255,177,77,.22);
+}
+
+.actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.actions button{
+    width:38px;
+    height:38px;
+    border-radius:12px;
+    cursor:pointer;
+    transition:.25s;
+}
+
+.approve-btn{
+    color:#38d989;
+    background:rgba(57,217,138,.08);
+    border:1px solid rgba(57,217,138,.22);
+}
+
+.reject-btn{
+    color:#ff5e63;
+    background:rgba(255,94,99,.08);
+    border:1px solid rgba(255,94,99,.22);
+}
+
+.approve-btn:hover,
+.reject-btn:hover{
+    transform:translateY(-3px);
+}
+
+/* ==========================
+   QUICK OVERVIEW
+========================== */
+
+.overview-list{
+    display:flex;
+    flex-direction:column;
+}
+
+.overview-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:22px 26px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+.overview-item:last-child{
+    border-bottom:none;
+}
+
+.overview-item h4{
+    margin:0;
+    color:#fff;
+    font-size:.98rem;
+}
+
+.overview-item p{
+    margin-top:5px;
+    color:#7f8897;
+    font-size:.84rem;
+}
+
+.overview-item h3{
+    margin:0;
+    color:#D1A83D;
+    font-size:1.25rem;
+    font-weight:800;
+}
+/* ==========================================
+   EEFF ADMIN DASHBOARD
+   Part 3/3
+========================================== */
+
+/* ==========================
+   BOTTOM GRID
+========================== */
+
+.dashboard-bottom{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+}
+
+/* ==========================
+   ANNOUNCEMENTS
+========================== */
+
+.announcement-card,
+.chart-card{
+    background:#171717;
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:24px;
+    overflow:hidden;
+}
+
+.announcement-list{
+    padding:10px 0;
+}
+
+.announcement-item{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:18px 28px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+    transition:.3s;
+}
+
+.announcement-item:last-child{
+    border-bottom:none;
+}
+
+.announcement-item:hover{
+    background:rgba(255,255,255,.03);
+}
+
+.announcement-dot{
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    flex-shrink:0;
+}
+
+.announcement-dot.gold{
+    background:#D1A83D;
+}
+
+.announcement-dot.blue{
+    background:#4C8DFF;
+}
+
+.announcement-dot.green{
+    background:#37D67A;
+}
+
+.announcement-item h4{
+    margin:0;
+    color:#fff;
+    font-size:1rem;
+    font-weight:600;
+}
+
+.announcement-item p{
+    margin-top:5px;
+    color:#8b94a5;
+    font-size:.85rem;
+}
+
+/* ==========================
+   CHART
+========================== */
+
+.chart-placeholder{
+    height:280px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-evenly;
+    gap:12px;
+    padding:35px 30px;
+}
+
+.bar{
+    width:38px;
+    border-radius:14px 14px 8px 8px;
+    background:linear-gradient(
+        180deg,
+        rgba(209,168,61,.95),
+        rgba(209,168,61,.18)
+    );
+    box-shadow:
+        0 12px 30px rgba(209,168,61,.15);
+    transition:.35s;
+}
+
+.bar:hover{
+    transform:translateY(-8px);
+}
+
+.bar.active{
+    background:linear-gradient(
+        180deg,
+        #FFD56A,
+        #D1A83D
+    );
+    box-shadow:
+        0 20px 45px rgba(209,168,61,.30);
+}
+
+.h45{height:45%;}
+.h55{height:55%;}
+.h60{height:60%;}
+.h70{height:70%;}
+.h75{height:75%;}
+.h90{height:90%;}
+.h100{height:100%;}
+
+/* ==========================
+   RESPONSIVE
+========================== */
+
+@media(max-width:1300px){
+
+    .stats-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .dashboard-main,
+    .dashboard-bottom{
+        grid-template-columns:1fr;
+    }
+
+}
+
+@media(max-width:900px){
+
+    .stats-grid{
+        grid-template-columns:1fr;
+    }
+
+    .table-head{
+        display:none;
+    }
+
+    .table-row{
+        grid-template-columns:1fr;
+        gap:12px;
+        padding:22px;
+    }
+
+    .actions{
+        justify-content:flex-start;
+    }
+
+    .dashboard-header{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+}
+
+@media(max-width:600px){
+
+    .dashboard-page{
+        gap:20px;
+    }
+
+    .dashboard-header h1{
+        font-size:1.8rem;
+    }
+
+    .card-header{
+        padding:20px;
+    }
+
+    .announcement-item,
+    .overview-item,
+    .table-row{
+        padding:18px;
+    }
+
+    .chart-placeholder{
+        height:220px;
+        padding:25px 18px;
+    }
+
+    .bar{
+        width:26px;
+    }
+
+}

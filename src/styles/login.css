@@ -1,0 +1,567 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap");
+
+/* ===========================
+   RESET
+=========================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:"Inter",sans-serif;
+    background:#080808;
+    color:white;
+}
+
+button,
+input{
+    font-family:inherit;
+}
+
+/* ===========================
+   PAGE
+=========================== */
+
+.admin-login-page{
+
+    min-height:100vh;
+
+    display:grid;
+
+    grid-template-columns:1.1fr .9fr;
+
+    background:#080808;
+}
+
+/* ===========================
+   LEFT SIDE
+=========================== */
+
+.admin-login-left{
+
+    position:relative;
+
+    overflow:hidden;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    padding:80px;
+
+    background:
+    radial-gradient(circle at top left,
+    rgba(212,175,55,.12),
+    transparent 45%),
+
+    radial-gradient(circle at bottom right,
+    rgba(212,175,55,.08),
+    transparent 45%),
+
+    linear-gradient(
+    135deg,
+    #111111,
+    #080808);
+}
+
+.login-overlay{
+
+    position:absolute;
+
+    inset:0;
+
+    background:
+    repeating-linear-gradient(
+        45deg,
+        transparent 0px,
+        transparent 30px,
+        rgba(255,255,255,.015) 31px,
+        transparent 32px
+    );
+}
+
+/* ===========================
+   BRAND
+=========================== */
+
+.brand-content{
+
+    position:relative;
+
+    z-index:2;
+
+    max-width:520px;
+}
+
+.brand-badge{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:12px 20px;
+
+    border-radius:999px;
+
+    border:1px solid rgba(212,175,55,.25);
+
+    background:rgba(212,175,55,.08);
+
+    color:#D4AF37;
+
+    font-size:14px;
+
+    font-weight:700;
+
+    letter-spacing:.12em;
+}
+
+.brand-content h1{
+
+    margin-top:36px;
+
+    font-size:76px;
+
+    line-height:1;
+
+    font-family:"Playfair Display",serif;
+
+    color:white;
+}
+
+.brand-content p{
+
+    margin-top:28px;
+
+    color:#A5A5A5;
+
+    font-size:18px;
+
+    line-height:1.8;
+
+    max-width:480px;
+}
+
+/* ===========================
+   ADMIN CARD
+=========================== */
+
+.brand-card{
+
+    margin-top:50px;
+
+    padding:30px;
+
+    border-radius:28px;
+
+    background:rgba(255,255,255,.04);
+
+    backdrop-filter:blur(20px);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    box-shadow:
+    0 25px 60px rgba(0,0,0,.45);
+}
+
+.brand-card h3{
+
+    color:white;
+
+    font-size:28px;
+
+    margin-bottom:12px;
+}
+
+.brand-card span{
+
+    color:#D4AF37;
+
+    font-size:16px;
+
+    font-weight:600;
+}
+/* ===========================
+   RIGHT SIDE
+=========================== */
+
+.admin-login-right{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    padding:80px 60px;
+
+    background:#0A0A0A;
+}
+
+/* ===========================
+   FORM
+=========================== */
+
+.admin-login-form{
+
+    width:100%;
+
+    max-width:470px;
+}
+
+.small-title{
+
+    color:#D4AF37;
+
+    font-size:13px;
+
+    font-weight:700;
+
+    letter-spacing:.18em;
+
+    text-transform:uppercase;
+}
+
+.admin-login-form h2{
+
+    margin-top:18px;
+
+    color:white;
+
+    font-size:44px;
+
+    line-height:1.15;
+
+    font-family:"Playfair Display",serif;
+}
+
+.subtitle{
+
+    margin-top:12px;
+
+    color:#8B8B8B;
+
+    font-size:17px;
+}
+
+/* ===========================
+   ERROR
+=========================== */
+
+.login-error{
+
+    margin-top:30px;
+
+    padding:16px 18px;
+
+    border-radius:16px;
+
+    background:rgba(220,38,38,.12);
+
+    border:1px solid rgba(220,38,38,.35);
+
+    color:#FFB4B4;
+
+    font-size:14px;
+}
+
+/* ===========================
+   INPUTS
+=========================== */
+
+.input-group{
+
+    margin-top:28px;
+}
+
+.input-group label{
+
+    display:block;
+
+    margin-bottom:12px;
+
+    color:#B7B7B7;
+
+    font-size:13px;
+
+    font-weight:700;
+
+    letter-spacing:.12em;
+
+    text-transform:uppercase;
+}
+
+.input-group input{
+
+    width:100%;
+
+    height:62px;
+
+    padding:0 22px;
+
+    border-radius:18px;
+
+    border:1px solid #2E2E2E;
+
+    background:#171717;
+
+    color:white;
+
+    font-size:16px;
+
+    transition:.25s;
+}
+
+.input-group input::placeholder{
+
+    color:#757575;
+}
+
+.input-group input:focus{
+
+    outline:none;
+
+    border-color:#D4AF37;
+
+    box-shadow:
+    0 0 0 4px rgba(212,175,55,.08);
+}
+
+/* ===========================
+   PASSWORD
+=========================== */
+
+.password-field{
+
+    position:relative;
+}
+
+.password-field input{
+
+    padding-right:70px;
+}
+
+.password-toggle{
+
+    position:absolute;
+
+    right:18px;
+
+    top:50%;
+
+    transform:translateY(-50%);
+
+    width:42px;
+
+    height:42px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:#202020;
+
+    color:#D4AF37;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    cursor:pointer;
+
+    transition:.25s;
+}
+
+.password-toggle:hover{
+
+    background:#2A2A2A;
+}
+/* ===========================
+   BUTTON
+=========================== */
+
+.login-btn{
+
+    width:100%;
+
+    height:64px;
+
+    margin-top:38px;
+
+    border:none;
+
+    border-radius:18px;
+
+    background:linear-gradient(
+    135deg,
+    #D4AF37,
+    #C59A1B);
+
+    color:#111;
+
+    font-size:17px;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:.3s;
+
+    box-shadow:
+    0 18px 40px rgba(212,175,55,.20);
+}
+
+.login-btn:hover{
+
+    transform:translateY(-3px);
+
+    box-shadow:
+    0 24px 45px rgba(212,175,55,.28);
+}
+
+.login-btn:disabled{
+
+    opacity:.7;
+
+    cursor:not-allowed;
+
+    transform:none;
+}
+
+/* ===========================
+   DIVIDER
+=========================== */
+
+.login-divider{
+
+    position:relative;
+
+    margin:38px 0;
+
+    text-align:center;
+}
+
+.login-divider::before{
+
+    content:"";
+
+    position:absolute;
+
+    left:0;
+
+    right:0;
+
+    top:50%;
+
+    height:1px;
+
+    background:#2A2A2A;
+}
+
+.login-divider span{
+
+    position:relative;
+
+    display:inline-block;
+
+    padding:0 18px;
+
+    background:#0A0A0A;
+
+    color:#777;
+
+    font-size:13px;
+}
+
+/* ===========================
+   FOOTER
+=========================== */
+
+.login-footer{
+
+    text-align:center;
+}
+
+.login-footer p{
+
+    color:white;
+
+    font-size:17px;
+
+    font-weight:700;
+}
+
+.login-footer span{
+
+    display:block;
+
+    margin-top:8px;
+
+    color:#8B8B8B;
+
+    font-size:14px;
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+
+@media(max-width:980px){
+
+    .admin-login-page{
+
+        grid-template-columns:1fr;
+    }
+
+    .admin-login-left{
+
+        display:none;
+    }
+
+    .admin-login-right{
+
+        padding:50px 24px;
+    }
+
+    .admin-login-form h2{
+
+        font-size:34px;
+    }
+}
+
+@media(max-width:480px){
+
+    .admin-login-right{
+
+        padding:34px 20px;
+    }
+
+    .admin-login-form h2{
+
+        font-size:30px;
+    }
+
+    .subtitle{
+
+        font-size:15px;
+    }
+
+    .input-group input{
+
+        height:58px;
+    }
+
+    .login-btn{
+
+        height:58px;
+    }
+}

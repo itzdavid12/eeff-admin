@@ -1,0 +1,214 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+/* ===========================
+   GLOBAL
+=========================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+
+    font-family:"Inter",sans-serif;
+
+    background:#0B0B0B;
+
+    color:#ffffff;
+
+    overflow:hidden;
+}
+
+a{
+
+    text-decoration:none;
+
+    color:inherit;
+}
+
+button{
+
+    font-family:inherit;
+}
+
+/* ===========================
+   LAYOUT
+=========================== */
+
+.admin-layout{
+
+    display:flex;
+
+    width:100%;
+
+    height:100vh;
+
+    background:#0B0B0B;
+}
+
+.admin-wrapper{
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+    overflow:hidden;
+
+    background:#101010;
+}
+
+/* ===========================
+   CONTENT
+=========================== */
+
+.admin-content{
+
+    flex:1;
+
+    overflow-y:auto;
+
+    padding:32px;
+
+    background:#101010;
+}
+
+.admin-content::-webkit-scrollbar{
+
+    width:8px;
+}
+
+.admin-content::-webkit-scrollbar-thumb{
+
+    background:#2A2A2A;
+
+    border-radius:20px;
+}
+
+.admin-content::-webkit-scrollbar-track{
+
+    background:transparent;
+}
+
+/* ===========================
+   PAGE TITLE
+=========================== */
+
+.page-title{
+
+    color:white;
+
+    font-size:34px;
+
+    font-weight:800;
+}
+
+.page-subtitle{
+
+    margin-top:8px;
+
+    color:#8F8F8F;
+
+    font-size:15px;
+}
+/* ===========================
+   CARD
+=========================== */
+
+.admin-card{
+
+    background:#171717;
+
+    border:1px solid #252525;
+
+    border-radius:24px;
+
+    padding:28px;
+
+    box-shadow:
+    0 20px 50px rgba(0,0,0,.30);
+}
+
+/* ===========================
+   SECTION
+=========================== */
+
+.admin-section{
+
+    margin-top:28px;
+}
+
+/* ===========================
+   GRID
+=========================== */
+
+.grid-2{
+
+    display:grid;
+
+    grid-template-columns:2fr 1fr;
+
+    gap:24px;
+}
+
+.grid-3{
+
+    display:grid;
+
+    grid-template-columns:repeat(3,1fr);
+
+    gap:24px;
+}
+
+.grid-4{
+
+    display:grid;
+
+    grid-template-columns:repeat(4,1fr);
+
+    gap:24px;
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+
+@media(max-width:1400px){
+
+    .grid-4{
+
+        grid-template-columns:repeat(2,1fr);
+    }
+
+}
+
+@media(max-width:1100px){
+
+    .grid-3{
+
+        grid-template-columns:1fr;
+    }
+
+    .grid-2{
+
+        grid-template-columns:1fr;
+    }
+
+}
+
+@media(max-width:768px){
+
+    .admin-content{
+
+        padding:20px;
+    }
+
+    .grid-4{
+
+        grid-template-columns:1fr;
+    }
+
+}
