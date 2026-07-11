@@ -1,100 +1,198 @@
-import "../styles/dashboard.css";
+import { useEffect, useState } from "react";
+
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  updateDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
+
 import {
   Heart,
   Users,
   Bell,
   AlertCircle,
+  ArrowRight,
   Check,
   X,
-  ArrowRight,
 } from "lucide-react";
+
+import { db } from "../firebase/firebase";
 
 import AdminLayout from "../layouts/AdminLayout";
 
+import "../styles/dashboard.css";
+
 function Dashboard() {
-  const stats = [
-    {
-      icon: <Heart size={22} />,
-      value: "₹45,000",
-      title: "Total Giving",
-      sub: "+₹2,500 this week",
-      color: "gold",
-      badge: "↑ Up",
-    },
-    {
-      icon: <Users size={22} />,
-      value: "120",
-      title: "Members",
-      sub: "3 new this month",
-      color: "blue",
-      badge: "↑ Up",
-    },
-    {
-      icon: <Bell size={22} />,
-      value: "8",
-      title: "Prayer Requests",
-      sub: "2 urgent",
-      color: "purple",
-      badge: "",
-    },
-    {
-      icon: <AlertCircle size={22} />,
-      value: "4",
-      title: "Pending",
-      sub: "Approval required",
-      color: "orange",
-      badge: "! Action",
-    },
-  ];
+const today = new Date();
 
-  const offerings = [
-    {
-      initial: "D",
-      name: "David Johnson",
-      method: "UPI",
-      fund: "Tithe",
-      amount: "₹500",
-      date: "Jul 9",
-      status: "Pending",
-    },
-    {
-      initial: "J",
-      name: "John Mathew",
-      method: "Card",
-      fund: "Building Fund",
-      amount: "₹1,000",
-      date: "Jul 8",
-      status: "Approved",
-    },
-    {
-      initial: "S",
-      name: "Samuel Paul",
-      method: "Bank",
-      fund: "Missions",
-      amount: "₹200",
-      date: "Jul 8",
-      status: "Approved",
-    },
-    {
-      initial: "P",
-      name: "Priya Thomas",
-      method: "UPI",
-      fund: "Tithe",
-      amount: "₹750",
-      date: "Jul 7",
-      status: "Approved",
-    },
-    {
-      initial: "R",
-      name: "Ravi Kumar",
-      method: "UPI",
-      fund: "Youth Ministry",
-      amount: "₹300",
-      date: "Jul 6",
-      status: "Pending",
-    },
-  ];
+const formattedDate = today.toLocaleDateString("en-IN", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+  const [offerings, setOfferings] = useState([]);
+  const [updatingId, setUpdatingId] = useState("");
 
+const [stats, setStats] = useState({
+  totalAmount: 0,
+  totalOfferings: 0,
+  approved: 0,
+  pending: 0,
+  rejected: 0,
+});
+async function approveOffering(id){
+
+  try{
+
+    setUpdatingId(id);
+
+    await updateDoc(
+
+      doc(db,"offerings",id),
+
+      {
+
+        status:"Approved",
+
+        approvedAt:serverTimestamp(),
+
+        updatedAt:serverTimestamp(),
+
+      }
+
+    );
+
+  }
+
+  catch(err){
+
+    console.log(err);
+
+  }
+
+  finally{
+
+    setUpdatingId("");
+
+  }
+
+}
+async function rejectOffering(id){
+
+  try{
+
+    setUpdatingId(id);
+
+    await updateDoc(
+
+      doc(db,"offerings",id),
+
+      {
+
+        status:"Rejected",
+
+        rejectedAt:serverTimestamp(),
+
+        updatedAt:serverTimestamp(),
+
+      }
+
+    );
+
+  }
+
+  catch(err){
+
+    console.log(err);
+
+  }
+
+  finally{
+
+    setUpdatingId("");
+
+  }
+
+}
+
+function calculateStats(data){
+
+  let totalAmount = 0;
+
+  let approved = 0;
+
+  let pending = 0;
+
+  let rejected = 0;
+
+  data.forEach((item)=>{
+
+    totalAmount += Number(item.amount || 0);
+
+    if(item.status === "Approved") approved++;
+
+    else if(item.status === "Pending") pending++;
+
+    else if(item.status === "Rejected") rejected++;
+
+  });
+
+  setStats({
+
+    totalAmount,
+
+    totalOfferings: data.length,
+
+    approved,
+
+    pending,
+
+    rejected,
+
+  });
+
+}
+useEffect(()=>{
+
+  const q=query(
+
+    collection(db,"offerings"),
+
+    orderBy("createdAt","desc")
+
+  );
+
+  const unsubscribe=onSnapshot(
+
+    q,
+
+    (snapshot)=>{
+
+      const data=snapshot.docs.map(doc=>({
+
+        id:doc.id,
+
+        ...doc.data(),
+
+      }));
+
+      setOfferings(data);
+
+      calculateStats(data);
+
+    }
+
+  );
+
+  return()=>unsubscribe();
+
+},[]);
+  
   return (
     <AdminLayout>
 
@@ -112,7 +210,7 @@ function Dashboard() {
 
             <p>
 
-              Wednesday, 9 July 2025 · Ebenezer Faith Fellowship
+               {formattedDate} · Ebenezer Faith Fellowship
 
             </p>
 
@@ -122,58 +220,139 @@ function Dashboard() {
 
         <div className="stats-grid">
 
-          {stats.map((item, index) => (
+  <div className="stat-card">
 
-            <div
-              key={index}
-              className="stat-card"
-            >
+    <div className="stat-top">
 
-              <div className="stat-top">
+      <div className="stat-icon gold">
 
-                <div
-                  className={`stat-icon ${item.color}`}
-                >
+        <Heart size={22}/>
 
-                  {item.icon}
+      </div>
 
-                </div>
+    </div>
 
-                {item.badge && (
+    <h2>
 
-                  <span className="stat-badge">
+      ₹{stats.totalAmount.toLocaleString()}
 
-                    {item.badge}
+    </h2>
 
-                  </span>
+    <h4>
 
-                )}
+      Total Giving
 
-              </div>
+    </h4>
 
-              <h2>
+    <p>
 
-                {item.value}
+      All offerings received
 
-              </h2>
+    </p>
 
-              <h4>
+  </div>
 
-                {item.title}
+  <div className="stat-card">
 
-              </h4>
+    <div className="stat-top">
 
-              <p>
+      <div className="stat-icon blue">
 
-                {item.sub}
+        <Users size={22}/>
 
-              </p>
+      </div>
 
-            </div>
+    </div>
 
-          ))}
+    <h2>
 
-        </div>
+      {stats.totalOfferings}
+
+    </h2>
+
+    <h4>
+
+      Total Offerings
+
+    </h4>
+
+    <p>
+
+      Received in Firestore
+
+    </p>
+
+  </div>
+
+  <div className="stat-card">
+
+    <div className="stat-top">
+
+      <div className="stat-icon purple">
+
+        <Bell size={22}/>
+
+      </div>
+
+    </div>
+
+    <h2>
+
+      {stats.approved}
+
+    </h2>
+
+    <h4>
+
+      Approved
+
+    </h4>
+
+    <p>
+
+      Approved Offerings
+
+    </p>
+
+  </div>
+
+  <div className="stat-card">
+
+    <div className="stat-top">
+
+      <div className="stat-icon orange">
+
+        <AlertCircle size={22}/>
+
+      </div>
+
+    </div>
+
+    <h2>
+
+      {stats.pending}
+
+    </h2>
+
+    <h4>
+
+      Pending
+
+    </h4>
+
+    <p>
+
+      Waiting for Approval
+
+    </p>
+
+  </div>
+
+</div>
+
+                
+
+             
 
         <div className="dashboard-main">
 
@@ -235,7 +414,7 @@ className="table-row"
 
 <div className="member-avatar">
 
-{offering.initial}
+{offering.name?.charAt(0).toUpperCase()}
 
 </div>
 
@@ -249,7 +428,7 @@ className="table-row"
 
 <p>
 
-{offering.method}
+{offering.paymentMethod}
 
 </p>
 
@@ -278,11 +457,23 @@ className="table-row"
 <div>
 
 <span
-className={`status ${
+className={`status
+
+${
+
 offering.status==="Approved"
+
 ?
 
 "approved"
+
+:
+
+offering.status==="Rejected"
+
+?
+
+"rejected"
 
 :
 
@@ -300,7 +491,13 @@ offering.status==="Approved"
 <div className="actions">
 
 <button
+
 className="approve-btn"
+
+disabled={updatingId===offering.id}
+
+onClick={()=>approveOffering(offering.id)}
+
 >
 
 <Check size={16}/>
@@ -308,7 +505,13 @@ className="approve-btn"
 </button>
 
 <button
+
 className="reject-btn"
+
+disabled={updatingId===offering.id}
+
+onClick={()=>rejectOffering(offering.id)}
+
 >
 
 <X size={16}/>

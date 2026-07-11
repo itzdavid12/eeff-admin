@@ -9,10 +9,31 @@ import {
   LogOut,
 } from "lucide-react";
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+
+import { signOut } from "firebase/auth";
+
+import { auth } from "../firebase/firebase";
 
 function Sidebar() {
+const navigate = useNavigate();
+async function handleLogout() {
 
+  try {
+
+    await signOut(auth);
+
+    navigate("/");
+
+  }
+
+  catch(err){
+
+    console.log(err);
+
+  }
+
+}
   const menu = [
 
     {
@@ -146,17 +167,20 @@ function Sidebar() {
 
         </div>
 
-        <button className="logout-btn">
+       <button
+  className="logout-btn"
+  onClick={handleLogout}
+>
 
-          <LogOut size={18} />
+  <LogOut size={18}/>
 
-          <span>
+  <span>
 
-            Logout
+    Logout
 
-          </span>
+  </span>
 
-        </button>
+</button>
 
       </div>
 

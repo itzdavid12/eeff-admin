@@ -1,22 +1,26 @@
-import { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  orderBy,
-  query,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
-
 import {
   Search,
-  Check,
+  Filter,
+  RefreshCw,
+  Eye,
   X,
-  RefreshCcw,
+  Check,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  updateDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
+
+
 
 import { db } from "../firebase/firebase";
-
 import AdminLayout from "../layouts/AdminLayout";
 
 import "../styles/offerings.css";
@@ -29,93 +33,160 @@ function Offerings() {
 
   const [search, setSearch] = useState("");
 
-  async function loadOfferings() {
-    async function updateStatus(id, status) {
+  const [statusFilter, setStatusFilter] =
+    useState("All");
 
-  try {
+  const [fundFilter, setFundFilter] =
+    useState("All");
+    const [selectedOffering, setSelectedOffering] = useState(null);
+const [showModal, setShowModal] = useState(false);
+function openOffering(offering){
 
-    await updateDoc(
-      doc(db, "offerings", id),
-      {
-        status,
-      }
-    );
+  setSelectedOffering(offering);
 
-    loadOfferings();
-
-  } catch (err) {
-
-    console.log(err);
-
-    alert("Unable to update offering.");
-
-  }
+  setShowModal(true);
 
 }
 
-    try{
+function closeOffering() {
+  setShowModal(false);
+  setSelectedOffering(null);
+}
 
-      setLoading(true);
+async function approveOffering(id) {
+  try {
+    await updateDoc(doc(db, "offerings", id), {
+      status: "Approved",
+      approvedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
 
-      const q = query(
-
-        collection(db,"offerings"),
-
-        orderBy("createdAt","desc")
-
-      );
-
-      const snapshot = await getDocs(q);
-
-      const data = snapshot.docs.map(doc=>({
-
-        id:doc.id,
-
-        ...doc.data(),
-
-      }));
-
-      setOfferings(data);
-
-    }
-
-    catch(err){
-
-      console.log(err);
-
-    }
-
-    finally{
-
-      setLoading(false);
-
-    }
-
+    closeOffering();
+  } catch (err) {
+    console.log(err);
   }
+}
 
-  useEffect(()=>{
+async function rejectOffering(id) {
+  try {
+    await updateDoc(doc(db, "offerings", id), {
+      status: "Rejected",
+      rejectedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
 
-    loadOfferings();
+    closeOffering();
+  } catch (err) {
+    console.log(err);
+  }
+}
+  useEffect(() => {
 
-  },[]);
+    const q = query(
 
-  const filteredOfferings = offerings.filter((item)=>{
+      collection(db, "offerings"),
 
-    const keyword = search.toLowerCase();
-
-    return(
-
-      item.name?.toLowerCase().includes(keyword) ||
-
-      item.transactionId?.toLowerCase().includes(keyword) ||
-
-      item.fund?.toLowerCase().includes(keyword)
+      orderBy("createdAt", "desc")
 
     );
 
-  });
+    const unsubscribe = onSnapshot(
 
-  return(
+      q,
+
+      (snapshot) => {
+
+        const data = snapshot.docs.map((doc) => ({
+
+          id: doc.id,
+
+          ...doc.data(),
+
+        }));
+
+        setOfferings(data);
+
+        setLoading(false);
+
+      },
+
+      (err) => {
+
+        console.log(err);
+
+        setLoading(false);
+
+      }
+
+    );
+
+    return () => unsubscribe();
+
+  }, []);
+
+  const filteredOfferings = useMemo(() => {
+
+    return offerings.filter((item) => {
+
+      const searchMatch =
+
+        item.name
+          ?.toLowerCase()
+          .includes(search.toLowerCase());
+
+      const statusMatch =
+
+        statusFilter === "All"
+
+          ? true
+
+          : item.status === statusFilter;
+
+      const fundMatch =
+
+        fundFilter === "All"
+
+          ? true
+
+          : item.fund === fundFilter;
+
+      return (
+
+        searchMatch &&
+
+        statusMatch &&
+
+        fundMatch
+
+      );
+
+    });
+
+  }, [
+
+    offerings,
+
+    search,
+
+    statusFilter,
+
+    fundFilter,
+
+  ]);
+
+  const uniqueFunds = [
+
+    "All",
+
+    ...new Set(
+
+      offerings.map((o) => o.fund)
+
+    ),
+
+  ];
+
+  return (
 
     <AdminLayout>
 
@@ -133,7 +204,7 @@ function Offerings() {
 
             <p>
 
-              Review and manage all church offerings.
+              Live offerings received from EEFF Connect
 
             </p>
 
@@ -141,10 +212,10 @@ function Offerings() {
 
           <button
             className="refresh-btn"
-            onClick={loadOfferings}
+            onClick={() => window.location.reload()}
           >
 
-            <RefreshCcw size={18}/>
+            <RefreshCw size={18} />
 
             Refresh
 
@@ -152,18 +223,69 @@ function Offerings() {
 
         </div>
 
-        <div className="offerings-toolbar">
+        <div className="filter-bar">
 
-          <div className="search-offering">
+          <div className="search-box">
 
-            <Search size={18}/>
+            <Search size={18} />
 
             <input
               type="text"
-              placeholder="Search by name, fund or transaction..."
+              placeholder="Search member..."
               value={search}
-              onChange={(e)=>setSearch(e.target.value)}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
             />
+
+          </div>
+
+          <div className="filter-select">
+
+            <Filter size={18} />
+
+            <select
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value)
+              }
+            >
+
+              <option>All</option>
+
+              <option>Pending</option>
+
+              <option>Approved</option>
+
+              <option>Rejected</option>
+
+            </select>
+
+          </div>
+
+          <div className="filter-select">
+
+            <select
+              value={fundFilter}
+              onChange={(e) =>
+                setFundFilter(e.target.value)
+              }
+            >
+
+              {uniqueFunds.map((fund) => (
+
+                <option
+                  key={fund}
+                  value={fund}
+                >
+
+                  {fund}
+
+                </option>
+
+              ))}
+
+            </select>
 
           </div>
 
@@ -208,18 +330,20 @@ function Offerings() {
 
             ) : (
 
-              filteredOfferings.map((item) => (
+              filteredOfferings.map((offering) => (
 
                 <div
+                  key={offering.id}
                   className="offerings-row"
-                  key={item.id}
                 >
 
                   <div className="member-info">
 
                     <div className="member-avatar">
 
-                      {item.name?.charAt(0).toUpperCase()}
+                      {offering.name
+                        ?.charAt(0)
+                        .toUpperCase()}
 
                     </div>
 
@@ -227,13 +351,13 @@ function Offerings() {
 
                       <h4>
 
-                        {item.name}
+                        {offering.name}
 
                       </h4>
 
                       <p>
 
-                        {item.transactionId || "No Transaction ID"}
+                        {offering.email}
 
                       </p>
 
@@ -243,29 +367,29 @@ function Offerings() {
 
                   <div>
 
-                    {item.fund}
+                    {offering.fund}
 
                   </div>
 
                   <div className="amount">
 
-                    ₹{item.amount}
+                    ₹{offering.amount}
 
                   </div>
 
                   <div>
 
-                    {item.paymentMethod}
+                    {offering.paymentMethod}
 
                   </div>
 
                   <div>
 
                     <span
-                      className={`status ${item.status?.toLowerCase()}`}
+                      className={`status ${offering.status?.toLowerCase()}`}
                     >
 
-                      {item.status}
+                      {offering.status}
 
                     </span>
 
@@ -273,37 +397,28 @@ function Offerings() {
 
                   <div>
 
-                    {item.date}
+                    {offering.createdAt?.toDate
+                      ? offering.createdAt
+                          .toDate()
+                          .toLocaleDateString("en-IN")
+                      : "-"}
 
                   </div>
 
                   <div className="row-actions">
 
-  <button
-    className="approve-btn"
-    onClick={() =>
-      updateStatus(item.id, "Approved")
-    }
-    disabled={item.status === "Approved"}
-  >
+                   <button
+  className="view-btn"
+  onClick={() => openOffering(offering)}
+>
 
-    <Check size={17} />
+  <Eye size={16} />
 
-  </button>
+  View
 
-  <button
-    className="reject-btn"
-    onClick={() =>
-      updateStatus(item.id, "Rejected")
-    }
-    disabled={item.status === "Rejected"}
-  >
+</button>
 
-    <X size={17} />
-
-  </button>
-
-</div>
+                  </div>
 
                 </div>
 
@@ -314,8 +429,158 @@ function Offerings() {
           </div>
 
         </div>
-              </div>
 
+      </div>
+{showModal && selectedOffering && (
+
+<div className="offering-modal-overlay">
+
+<div className="offering-modal">
+
+<div className="modal-header">
+
+<h2>
+
+Offering Details
+
+</h2>
+
+<button onClick={closeOffering}>
+
+<X size={18}/>
+
+</button>
+
+</div>
+
+<div className="modal-body">
+
+<div className="detail-row">
+
+<span>
+
+Member
+
+</span>
+
+<strong>
+
+{selectedOffering.name}
+
+</strong>
+
+</div>
+
+<div className="detail-row">
+
+<span>
+
+Email
+
+</span>
+
+<strong>
+
+{selectedOffering.email || "-"}
+
+</strong>
+
+</div>
+
+<div className="detail-row">
+
+<span>
+
+Fund
+
+</span>
+
+<strong>
+
+{selectedOffering.fund}
+
+</strong>
+
+</div>
+
+<div className="detail-row">
+
+<span>
+
+Amount
+
+</span>
+
+<strong>
+
+₹{selectedOffering.amount}
+
+</strong>
+
+</div>
+
+<div className="detail-row">
+
+<span>
+
+Payment
+
+</span>
+
+<strong>
+
+{selectedOffering.paymentMethod}
+
+</strong>
+
+</div>
+
+<div className="detail-row">
+
+<span>
+
+Status
+
+</span>
+
+<strong>
+
+{selectedOffering.status}
+
+</strong>
+
+</div>
+
+</div>
+
+
+<div className="modal-footer">
+
+  <button
+    className="approve-btn"
+    onClick={() => approveOffering(selectedOffering.id)}
+  >
+    <Check size={18} />
+    Approve
+  </button>
+
+  <button
+    className="reject-btn"
+    onClick={() => rejectOffering(selectedOffering.id)}
+  >
+    <X size={18} />
+    Reject
+  </button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+)}
     </AdminLayout>
 
   );

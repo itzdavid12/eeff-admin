@@ -1,8 +1,21 @@
 // src/pages/Login.jsx (Part 1/3)
 
 import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase/firebase";
+
+import {
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+
+import {
+  doc,
+  getDoc,
+} from "firebase/firestore";
+
+import {
+  auth,
+  db,
+} from "../firebase/firebase";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -32,13 +45,57 @@ function Login() {
     try {
       setLoading(true);
 
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+     
+  const userCredential =
+  await signInWithEmailAndPassword(
+    auth,
+    email,
+    password
+  );
 
-      navigate("/dashboard");
+
+
+const uid = userCredential.user.uid;
+
+const adminRef = doc(db, "admins", uid);
+
+const adminSnap = await getDoc(adminRef);
+
+// User not found in admins collection
+if (!adminSnap.exists()) {
+
+  await signOut(auth);
+
+  setError(
+    "Access Denied. You are not an authorized admin."
+  );
+
+  return;
+
+}
+
+// Read admin data
+const adminData = adminSnap.data();
+
+// Only Admin & Leader allowed
+if (
+  adminData.role !== "Admin" &&
+  adminData.role !== "Leader"
+) {
+
+  await signOut(auth);
+
+  setError(
+    "You don't have permission to access this panel."
+  );
+
+  return;
+
+}
+
+navigate("/dashboard");
+
+
     } catch (err) {
       console.log(err);
 
