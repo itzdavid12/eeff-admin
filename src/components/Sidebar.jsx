@@ -1,3 +1,9 @@
+import { useEffect, useState } from "react";
+
+import { auth, db } from "../firebase/firebase";
+
+import { doc, getDoc } from "firebase/firestore";
+
 import "../styles/sidebar.css";
 import {
   LayoutDashboard,
@@ -13,9 +19,12 @@ import { NavLink, useNavigate } from "react-router-dom";
 
 import { signOut } from "firebase/auth";
 
-import { auth } from "../firebase/firebase";
+
 
 function Sidebar() {
+  const [adminName, setAdminName] = useState("Admin");
+
+const [adminRole, setAdminRole] = useState("Administrator");
 const navigate = useNavigate();
 async function handleLogout() {
 
@@ -73,6 +82,35 @@ async function handleLogout() {
     },
 
   ];
+  useEffect(() => {
+
+  async function loadAdmin() {
+
+    if (!auth.currentUser) return;
+
+    const adminRef = doc(
+      db,
+      "admins",
+      auth.currentUser.uid
+    );
+
+    const adminSnap = await getDoc(adminRef);
+
+    if (adminSnap.exists()) {
+
+      const data = adminSnap.data();
+
+      setAdminName(data.name);
+
+      setAdminRole(data.role);
+
+    }
+
+  }
+
+  loadAdmin();
+
+}, []);
 
   return (
 
@@ -143,25 +181,25 @@ async function handleLogout() {
 
         <div className="sidebar-admin">
 
-          <div className="admin-avatar">
+         <div className="admin-avatar">
 
-            D
+{adminName.charAt(0).toUpperCase()}
 
-          </div>
+</div>
 
           <div>
 
             <h4>
 
-              David
+{adminName}
 
-            </h4>
+</h4>
 
-            <p>
+           <p>
 
-              Super Admin
+{adminRole}
 
-            </p>
+</p>
 
           </div>
 

@@ -1,13 +1,62 @@
-import "../styles/topbar.css";
+import { useEffect, useState } from "react";
+
 import {
   Search,
   Bell,
   ChevronDown,
 } from "lucide-react";
 
+import { auth, db } from "../firebase/firebase";
+
+import {
+  doc,
+  getDoc,
+} from "firebase/firestore";
+
 import "../styles/topbar.css";
 
 function Topbar() {
+
+  const [adminName, setAdminName] = useState("Admin");
+  const [adminRole, setAdminRole] = useState("Administrator");
+
+  useEffect(() => {
+
+    async function loadAdmin() {
+
+      if (!auth.currentUser) return;
+
+      try {
+
+        const adminRef = doc(
+          db,
+          "admins",
+          auth.currentUser.uid
+        );
+
+        const adminSnap = await getDoc(adminRef);
+
+        if (adminSnap.exists()) {
+
+          const data = adminSnap.data();
+
+          setAdminName(data.name || "Admin");
+
+          setAdminRole(data.role || "Administrator");
+
+        }
+
+      } catch (err) {
+
+        console.log(err);
+
+      }
+
+    }
+
+    loadAdmin();
+
+  }, []);
 
   return (
 
@@ -46,7 +95,7 @@ function Topbar() {
 
           <Bell size={20} />
 
-          <span className="notification-dot"/>
+          <span className="notification-dot" />
 
         </button>
 
@@ -54,7 +103,7 @@ function Topbar() {
 
           <div className="profile-avatar">
 
-            D
+            {adminName.charAt(0).toUpperCase()}
 
           </div>
 
@@ -62,19 +111,19 @@ function Topbar() {
 
             <h4>
 
-              David
+              {adminName}
 
             </h4>
 
             <p>
 
-              Administrator
+              {adminRole}
 
             </p>
 
           </div>
 
-          <ChevronDown size={18}/>
+          <ChevronDown size={18} />
 
         </div>
 
