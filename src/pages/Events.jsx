@@ -1,658 +1,458 @@
-import { useEffect, useMemo, useState } from "react";
-
+import { useEffect, useState, useMemo } from "react";
+import toast, { Toaster } from "react-hot-toast";
 import {
   collection,
+  onSnapshot,
   addDoc,
-  updateDoc,
   deleteDoc,
   doc,
   query,
   orderBy,
-  onSnapshot,
   serverTimestamp,
 } from "firebase/firestore";
-
 import {
-  Search,
   Plus,
-  CalendarDays,
+  Calendar,
+  Clock,
   MapPin,
-  Clock3,
-  Pencil,
+  Users,
   Trash2,
   X,
+  UserCheck,
 } from "lucide-react";
 
 import { db } from "../firebase/firebase";
 import AdminLayout from "../layouts/AdminLayout";
-
-import "../styles/events.css";
+import "../styles/dashboard.css";
 
 function Events() {
-
   const [events, setEvents] = useState([]);
-
   const [loading, setLoading] = useState(true);
 
-  const [search, setSearch] = useState("");
-
   const [showModal, setShowModal] = useState(false);
+  const [selectedAttendees, setSelectedAttendees] = useState(null);
 
-  const [editingEvent, setEditingEvent] = useState(null);
-
-  const [eventForm, setEventForm] = useState({
-  title: "",
-  description: "",
-  date: "",
-  time: "",
-  venue: "",
-  speaker: "",
-  type: "Service",
-  status: "Published",
-});
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    category: "SPECIAL SERVICE",
+    date: "",
+    time: "6:00 PM - 8:00 PM",
+    location: "Main Church Sanctuary",
+  });
 
   useEffect(() => {
-
+    // Sync with 'events' collection used by User App
     const q = query(
       collection(db, "events"),
-      orderBy("date", "asc")
+      orderBy("createdAt", "desc")
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-
-        const data = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
+        const data = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
         }));
-
         setEvents(data);
-
         setLoading(false);
-
       },
       (err) => {
-
-        console.log(err);
-
+        console.error(err);
         setLoading(false);
-
       }
     );
 
     return () => unsubscribe();
-
   }, []);
 
-  const filteredEvents = useMemo(() => {
-
-    return events.filter(event =>
-      event.title
-        ?.toLowerCase()
-        .includes(search.toLowerCase())
-    );
-
-  }, [events, search]);
-
   function openAddModal() {
-
-    setEditingEvent(null);
-
-   setEventForm({
-  title: "",
-  description: "",
-  date: "",
-  time: "",
-  venue: "",
-  speaker: "",
-  type: "Service",
-  status: "Published",
-});
-
-    setShowModal(true);
-
-  }
-
-  function openEditModal(event) {
-
-    setEditingEvent(event);
-
-    setEventForm({
-
-      title: event.title || "",
-            description: event.description || "",
-      date: event.date || "",
-      time: event.time || "",
-      venue: event.venue || "",
-      speaker: event.speaker || "",
-      type: event.type || "Service",
-status: event.status || "Published",
-
+    setFormData({
+      title: "",
+      description: "",
+      category: "SPECIAL SERVICE",
+      date: new Date().toLocaleDateString("en-IN"),
+      time: "6:00 PM - 8:00 PM",
+      location: "Main Church Sanctuary",
     });
-
     setShowModal(true);
-
   }
 
-  function closeModal() {
-
-    setShowModal(false);
-
-    setEditingEvent(null);
-
-  }
-
-  async function saveEvent() {
-
-    try {
-
-      if (
-        !eventForm.title ||
-        !eventForm.date ||
-        !eventForm.time ||
-        !eventForm.venue
-      ) {
-
-        alert("Please fill all required fields.");
-
-        return;
-
-      }
-
-      if (editingEvent) {
-
-        await updateDoc(
-
-          doc(db, "events", editingEvent.id),
-
-          {
-
-            ...eventForm,
-
-            updatedAt: serverTimestamp(),
-
-          }
-
-        );
-
-      } else {
-
-        await addDoc(
-
-          collection(db, "events"),
-
-          {
-
-            ...eventForm,
-
-            createdAt: serverTimestamp(),
-
-            updatedAt: serverTimestamp(),
-
-          }
-
-        );
-
-      }
-
-      closeModal();
-
-    } catch (err) {
-
-      console.log(err);
-
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!formData.title || !formData.date) {
+      toast.error("Please enter event title and date!");
+      return;
     }
 
+    try {
+      await addDoc(collection(db, "events"), {
+        ...formData,
+        attendees: [], // Stores member RSVPs [{uid, name, email}]
+        createdAt: serverTimestamp(),
+      });
+
+      toast.success("Church Event published! 🎉");
+      setShowModal(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Error creating event");
+    }
   }
 
-  async function deleteEvent(id) {
-
-    const ok = window.confirm(
-
-      "Delete this event?"
-
-    );
-
-    if (!ok) return;
-
+  async function handleDelete(id) {
+    if (!window.confirm("Delete this event?")) return;
     try {
-
-      await deleteDoc(
-
-        doc(db, "events", id)
-
-      );
-
+      await deleteDoc(doc(db, "events", id));
+      toast.success("Event deleted!");
     } catch (err) {
-
-      console.log(err);
-
+      console.error(err);
+      toast.error("Failed to delete event");
     }
-
   }
 
   return (
-
     <AdminLayout>
-
-      <div className="events-page">
-
-        <div className="events-header">
-
+      <Toaster position="top-right" />
+      <div className="dashboard-page">
+        {/* Header */}
+        <div
+          className="dashboard-header"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <div>
-
-            <h1>
-
-              Events
-
-            </h1>
-
-            <p>
-
-              Manage church events
-
-            </p>
-
+            <h1>Church Events & RSVP Management</h1>
+            <p>Organize events and track member attendance</p>
           </div>
 
           <button
-            className="add-event-btn"
             onClick={openAddModal}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "#D4AF37",
+              color: "#000",
+              fontWeight: "600",
+              border: "none",
+              padding: "10px 16px",
+              borderRadius: "10px",
+              cursor: "pointer",
+            }}
           >
-
-            <Plus size={18} />
-
-            Add Event
-
+            <Plus size={18} /> Create Event
           </button>
-
         </div>
 
-        <div className="events-toolbar">
-
-          <div className="events-search">
-
-            <Search size={18} />
-
-            <input
-              type="text"
-              placeholder="Search event..."
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-            />
-
-          </div>
-
-        </div>
-
-        <div className="events-card">
-
-          <div className="events-table">
-
-            <div className="events-head">
-
-              <span>Event</span>
-
-              <span>Date</span>
-
-              <span>Time</span>
-
-              <span>Venue</span>
-
-              <span>Status</span>
-
-              <span>Action</span>
-
+        {/* Event Cards Grid */}
+        <div style={{ marginTop: "24px" }}>
+          {loading ? (
+            <div style={{ padding: "40px", textAlign: "center", color: "#888" }}>
+              Loading Church Events...
             </div>
+          ) : events.length === 0 ? (
+            <div
+              style={{
+                backgroundColor: "#181818",
+                border: "1px solid #2a2a2a",
+                borderRadius: "16px",
+                padding: "40px 20px",
+                textAlign: "center",
+              }}
+            >
+              <Calendar size={36} color="#444" style={{ marginBottom: "10px" }} />
+              <h3 style={{ color: "#ccc", margin: 0 }}>No Active Events</h3>
+              <p style={{ color: "#666", fontSize: "13px", marginTop: "4px" }}>
+                Click 'Create Event' to publish an upcoming service or youth program.
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                gap: "20px",
+              }}
+            >
+              {events.map((item) => {
+                const attendees = item.attendees || [];
 
-            {loading ? (
-
-              <div className="events-loading">
-
-                Loading...
-
-              </div>
-
-            ) : filteredEvents.length === 0 ? (
-
-              <div className="events-loading">
-
-                No Events Found
-
-              </div>
-
-            ) : (
-
-              filteredEvents.map((event) => (
-
-                <div
-                  key={event.id}
-                  className="events-row"
-                >
-
-                  <div className="event-info">
-
-                    <div className="event-icon">
-
-                      <CalendarDays size={20} />
-
-                    </div>
-
+                return (
+                  <div
+                    key={item.id}
+                    style={{
+                      backgroundColor: "#161616",
+                      border: "1px solid #333",
+                      borderRadius: "16px",
+                      padding: "20px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                    }}
+                  >
                     <div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "12px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            background: "rgba(212, 175, 55, 0.15)",
+                            color: "#D4AF37",
+                            padding: "4px 10px",
+                            borderRadius: "20px",
+                            fontSize: "11px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {item.category || "SPECIAL SERVICE"}
+                        </span>
 
-                      <h4>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "#ef4444",
+                            cursor: "pointer",
+                          }}
+                          title="Delete Event"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
 
-                        {event.title}
+                      <h3 style={{ fontSize: "18px", color: "#fff", margin: "0 0 6px 0" }}>
+                        {item.title}
+                      </h3>
 
-                      </h4>
-
-                      <p>
-
-                        {event.description}
-
+                      <p style={{ color: "#888", fontSize: "13px", lineHeight: "1.4", margin: "0 0 16px 0" }}>
+                        {item.description}
                       </p>
 
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", color: "#ccc" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <Calendar size={14} color="#D4AF37" />
+                          <span>{item.date}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <Clock size={14} color="#D4AF37" />
+                          <span>{item.time}</span>
+                        </div>
+                        {item.location && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <MapPin size={14} color="#D4AF37" />
+                            <span>{item.location}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                  </div>
-
-                  <div>
-
-                    {event.date}
-
-                  </div>
-
-                  <div className="event-time">
-
-                    <Clock3 size={14}/>
-
-                    {event.time}
-
-                  </div>
-
-                  <div className="event-venue">
-
-                    <MapPin size={14}/>
-
-                    {event.venue}
-
-                  </div>
-
-                  <div>
-
-                    <span
-                      className={`event-status ${
-                        event.status === "Published"
-                          ? "published"
-                          : "draft"
-                      }`}
+                    {/* RSVP Counter & View Members Button */}
+                    <div
+                      style={{
+                        marginTop: "20px",
+                        paddingTop: "14px",
+                        borderTop: "1px solid #282828",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
                     >
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#D4AF37", fontWeight: "600", fontSize: "13px" }}>
+                        <UserCheck size={18} />
+                        <span>{attendees.length} Member RSVPs</span>
+                      </div>
 
-                     <span className="event-type">
-
-  {event.type || "Service"}
-
-</span>
-
-                    </span>
-
+                      {attendees.length > 0 && (
+                        <button
+                          onClick={() => setSelectedAttendees(attendees)}
+                          style={{
+                            background: "#222",
+                            border: "1px solid #444",
+                            color: "#fff",
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          View List
+                        </button>
+                      )}
+                    </div>
                   </div>
-
-                  <div className="event-actions">
-
-                    <button
-                      className="edit-btn"
-                      onClick={() =>
-                        openEditModal(event)
-                      }
-                    >
-
-                      <Pencil size={16}/>
-
-                    </button>
-
-                    <button
-                      className="delete-btn"
-                      onClick={() =>
-                        deleteEvent(event.id)
-                      }
-                    >
-
-                      <Trash2 size={16}/>
-
-                    </button>
-
-                  </div>
-
-                </div>
-
-              ))
-
-            )}
-
-          </div>
-
+                );
+              })}
+            </div>
+          )}
         </div>
 
+        {/* Create Event Modal */}
         {showModal && (
-
-          <div className="event-modal-overlay">
-
-            <div className="event-modal">
-
-              <div className="event-modal-header">
-
-                <h2>
-
-                  {editingEvent
-                    ? "Edit Event"
-                    : "Add Event"}
-
-                </h2>
-
-                <button
-                  onClick={closeModal}
-                >
-
-                  <X size={18}/>
-
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.8)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "20px",
+            }}
+          >
+            <div
+              style={{
+                background: "#161616",
+                border: "1px solid #333",
+                borderRadius: "16px",
+                padding: "24px",
+                width: "100%",
+                maxWidth: "480px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h2 style={{ fontSize: "18px", color: "#fff", margin: 0 }}>Create New Church Event</h2>
+                <button onClick={() => setShowModal(false)} style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer" }}>
+                  <X size={20} />
                 </button>
-
               </div>
 
-              <div className="event-modal-body">
-
-                <input
-                  placeholder="Event Title"
-                  value={eventForm.title}
-                  onChange={(e)=>
-
-                    setEventForm({
-
-                      ...eventForm,
-
-                      title:e.target.value,
-
-                    })
-
-                  }
-                />
-
-                <textarea
-                  rows={4}
-                  placeholder="Description"
-                  value={eventForm.description}
-                  onChange={(e)=>
-
-                    setEventForm({
-
-                      ...eventForm,
-
-                      description:e.target.value,
-
-                    })
-
-                  }
-                />
-
-                <input
-                  type="date"
-                  value={eventForm.date}
-                  onChange={(e)=>
-
-                    setEventForm({
-
-                      ...eventForm,
-
-                      date:e.target.value,
-
-                    })
-
-                  }
-                />
-
-                <input
-                  type="time"
-                  value={eventForm.time}
-                  onChange={(e)=>
-
-                    setEventForm({
-
-                      ...eventForm,
-
-                      time:e.target.value,
-
-                    })
-
-                  }
-                />
-
-                <input
-                  placeholder="Venue"
-                  value={eventForm.venue}
-                  onChange={(e)=>
-
-                    setEventForm({
-
-                      ...eventForm,
-
-                      venue:e.target.value,
-
-                    })
-
-                  }
-                />
-
-                <input
-                  placeholder="Speaker"
-                  value={eventForm.speaker}
-                  onChange={(e)=>
-
-                    setEventForm({
-
-                      ...eventForm,
-
-                      speaker:e.target.value,
-
-                    })
-
-                  }
-                />
-<select
-  value={eventForm.type}
-  onChange={(e) =>
-    setEventForm({
-      ...eventForm,
-      type: e.target.value,
-    })
-  }
->
-
-  <option>Service</option>
-
-  <option>Youth</option>
-
-  <option>Prayer</option>
-
-  <option>Camp</option>
-
-  <option>Conference</option>
-
-  <option>VBS</option>
-
-  <option>Special</option>
-
-</select>
-                <select
-                  value={eventForm.status}
-                  onChange={(e)=>
-
-                    setEventForm({
-
-                      ...eventForm,
-
-                      status:e.target.value,
-
-                    })
-
-                  }
-                >
-
-                  <option>
-
-                    Published
-
-                  </option>
-
-                  <option>
-
-                    Draft
-
-                  </option>
-
-                </select>
-
-              </div>
-
-              <div className="event-modal-footer">
-
-                <button
-                  className="cancel-btn"
-                  onClick={closeModal}
-                >
-
-                  Cancel
-
-                </button>
-
-                <button
-                  className="save-btn"
-                  onClick={saveEvent}
-                >
-
-                  {editingEvent
-                    ? "Update Event"
-                    : "Create Event"}
-
-                </button>
-
-              </div>
-
+              <form onSubmit={handleSubmit} style={{ display: "grid", gap: "14px" }}>
+                <div>
+                  <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Event Title</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Annual Worship Night"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    style={{ width: "100%", background: "#222", border: "1px solid #333", color: "#fff", padding: "10px", borderRadius: "8px", outline: "none" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Description</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Event details..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    style={{ width: "100%", background: "#222", border: "1px solid #333", color: "#fff", padding: "10px", borderRadius: "8px", outline: "none", resize: "none" }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Date</label>
+                    <input
+                      type="text"
+                      placeholder="Sunday, 26 July"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      style={{ width: "100%", background: "#222", border: "1px solid #333", color: "#fff", padding: "10px", borderRadius: "8px", outline: "none" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Category</label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      style={{ width: "100%", background: "#222", border: "1px solid #333", color: "#fff", padding: "10px", borderRadius: "8px", outline: "none" }}
+                    >
+                      <option value="MAIN SERVICE">MAIN SERVICE</option>
+                      <option value="YOUTH MEETING">YOUTH MEETING</option>
+                      <option value="WORSHIP NIGHT">WORSHIP NIGHT</option>
+                      <option value="SPECIAL PROGRAM">SPECIAL PROGRAM</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Location</label>
+                  <input
+                    type="text"
+                    placeholder="Main Church Sanctuary"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    style={{ width: "100%", background: "#222", border: "1px solid #333", color: "#fff", padding: "10px", borderRadius: "8px", outline: "none" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
+                  <button type="button" onClick={() => setShowModal(false)} style={{ background: "#2a2a2a", color: "#fff", border: "none", padding: "8px 16px", borderRadius: "8px", cursor: "pointer" }}>
+                    Cancel
+                  </button>
+                  <button type="submit" style={{ background: "#D4AF37", color: "#000", fontWeight: "bold", border: "none", padding: "8px 16px", borderRadius: "8px", cursor: "pointer" }}>
+                    Publish Event
+                  </button>
+                </div>
+              </form>
             </div>
-
           </div>
-
         )}
 
+        {/* View RSVP'd Attendees Modal */}
+        {selectedAttendees && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.8)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "20px",
+            }}
+          >
+            <div
+              style={{
+                background: "#161616",
+                border: "1px solid #333",
+                borderRadius: "16px",
+                padding: "24px",
+                width: "100%",
+                maxWidth: "400px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ fontSize: "16px", color: "#fff", margin: 0 }}>RSVP'd Members ({selectedAttendees.length})</h3>
+                <button onClick={() => setSelectedAttendees(null)} style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer" }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "300px", overflowY: "auto" }}>
+                {selectedAttendees.map((att, idx) => (
+                  <div key={idx} style={{ backgroundColor: "#222", padding: "10px 14px", borderRadius: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#D4AF37", color: "#000", fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px" }}>
+                      {att.name?.[0]?.toUpperCase() || "M"}
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: "13px", color: "#fff" }}>{att.name || "Member"}</h4>
+                      <p style={{ margin: 0, fontSize: "11px", color: "#888" }}>{att.email || "No email"}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-
     </AdminLayout>
-
   );
-
 }
 
 export default Events;

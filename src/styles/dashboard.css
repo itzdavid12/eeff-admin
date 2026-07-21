@@ -591,3 +591,30 @@
     cursor:not-allowed;
 
 }
+.stat-icon.red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.stat-icon.green {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+.offering-table .table-head,
+.offering-table .table-row {
+  display: grid;
+  grid-template-columns: 40px 1.5fr 1fr 1fr 1fr 1fr 1fr;
+  align-items: center;
+}
+.dashboard-bottom {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+.quick-overview-sidebar {
+    position: sticky;
+    top: 20px;
+    align-self: flex-start;
+}
