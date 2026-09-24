@@ -11,23 +11,19 @@ import {
   orderBy,
   serverTimestamp,
 } from "firebase/firestore";
-import {
-  Plus,
-  Search,
-  Bell,
-  Pencil,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Plus, Search, Pencil, Trash2, X, Megaphone, MapPin } from "lucide-react";
 
 import { db } from "../firebase/firebase";
 import AdminLayout from "../layouts/AdminLayout";
-import "../styles/dashboard.css";
+import "../styles/updates.css";
+
+const BRANCHES = ["All Branches", "Dombivli", "Mulund", "Bhandup"];
 
 function Updates() {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState("All Branches");
 
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -36,6 +32,7 @@ function Updates() {
     title: "",
     description: "",
     type: "SERVICE",
+    branch: "All Branches",
     date: "",
     time: "",
     badge: "NEW",
@@ -43,7 +40,6 @@ function Updates() {
   });
 
   useEffect(() => {
-    // Sync with 'announcements' collection used by User App
     const q = query(
       collection(db, "announcements"),
       orderBy("createdAt", "desc")
@@ -74,6 +70,7 @@ function Updates() {
       title: "",
       description: "",
       type: "SERVICE",
+      branch: "All Branches",
       date: new Date().toLocaleDateString("en-IN"),
       time: "6:00 PM",
       badge: "NEW",
@@ -88,6 +85,7 @@ function Updates() {
       title: item.title || "",
       description: item.description || item.message || "",
       type: item.type || item.category || "SERVICE",
+      branch: item.branch || "All Branches",
       date: item.date || "",
       time: item.time || "",
       badge: item.badge || "NEW",
@@ -107,9 +105,10 @@ function Updates() {
       const payload = {
         title: formData.title,
         description: formData.description,
-        message: formData.description, // Backup field for user app compatibility
+        message: formData.description,
         type: formData.type,
         category: formData.type,
+        branch: formData.branch,
         date: formData.date,
         time: formData.time,
         badge: formData.badge,
@@ -148,437 +147,254 @@ function Updates() {
   }
 
   const filteredAnnouncements = useMemo(() => {
-    return announcements.filter(
-      (u) =>
+    return announcements.filter((u) => {
+      const matchesSearch =
         u.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (u.description || u.message)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (u.type || u.category)?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [announcements, searchQuery]);
+        (u.type || u.category)?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesBranch =
+        selectedBranchFilter === "All Branches" ||
+        u.branch === selectedBranchFilter ||
+        u.branch === "All Branches" ||
+        !u.branch;
+
+      return matchesSearch && matchesBranch;
+    });
+  }, [announcements, searchQuery, selectedBranchFilter]);
 
   return (
     <AdminLayout>
       <Toaster position="top-right" />
-      <div className="dashboard-page">
+      <div className="updates-page">
         {/* Header */}
-        <div
-          className="dashboard-header"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <div className="updates-header">
           <div>
             <h1>Church Updates & Announcements</h1>
-            <p>Publish and manage announcements for church members</p>
+            <p>Publish and manage announcements across all church branches</p>
           </div>
 
-          <button
-            onClick={openAddModal}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "#D4AF37",
-              color: "#000",
-              fontWeight: "600",
-              border: "none",
-              padding: "10px 16px",
-              borderRadius: "10px",
-              cursor: "pointer",
-            }}
-          >
+          <button className="add-update-btn" onClick={openAddModal}>
             <Plus size={18} /> Add Announcement
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="stats-grid" style={{ marginBottom: "24px" }}>
-          <div className="stat-card">
-            <div className="stat-top">
-              <div className="stat-icon purple">
-                <Bell size={22} />
-              </div>
-            </div>
-            <h2>{announcements.length}</h2>
-            <h4>Total Published</h4>
-            <p>Active Announcements</p>
+        {/* Toolbar & Search & Branch Filter */}
+        <div className="updates-toolbar">
+          <div className="updates-search">
+            <Search size={18} />
+            <input
+              type="text"
+              placeholder="Search announcements..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div style={{ minWidth: "180px" }}>
+            <select
+              value={selectedBranchFilter}
+              onChange={(e) => setSelectedBranchFilter(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "14px",
+                background: "#181818",
+                border: "1px solid rgba(255, 255, 255, 0.06)",
+                borderRadius: "14px",
+                color: "#fff",
+                outline: "none",
+                fontSize: "14px",
+                cursor: "pointer",
+              }}
+            >
+              {BRANCHES.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Recent Card / List */}
-        <section className="recent-card">
-          <div
-            className="card-header"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}
-          >
-            <div>
-              <h2>All Announcements</h2>
-              <span>Manage active and past posts</span>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                background: "#1e1e1e",
-                padding: "6px 12px",
-                borderRadius: "8px",
-                border: "1px solid #333",
-              }}
-            >
-              <Search size={16} color="#888" style={{ marginRight: "6px" }} />
-              <input
-                type="text"
-                placeholder="Search announcement..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#fff",
-                  outline: "none",
-                  fontSize: "13px",
-                  width: "200px",
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="offering-table">
-            <div className="table-head">
-              <span>Title</span>
+        {/* Content Table Card */}
+        <div className="updates-card">
+          <div className="updates-table">
+            <div className="updates-head">
+              <span>Title & Details</span>
+              <span>Branch</span>
               <span>Category</span>
               <span>Date & Time</span>
-              <span>Important</span>
-              <span>Action</span>
+              <span>Actions</span>
             </div>
 
             {loading ? (
-              <div style={{ padding: "30px", textAlign: "center", color: "#888" }}>
-                Loading Announcements...
-              </div>
+              <div className="updates-loading">Loading Announcements...</div>
             ) : filteredAnnouncements.length === 0 ? (
-              <div style={{ padding: "30px", textAlign: "center", color: "#888" }}>
-                No announcements found.
-              </div>
+              <div className="updates-loading">No announcements found for selected branch.</div>
             ) : (
               filteredAnnouncements.map((item) => (
-                <div key={item.id} className="table-row">
-                  <div className="member-cell">
+                <div key={item.id} className="updates-row">
+                  <div className="update-info">
+                    <div className="update-icon">
+                      <Megaphone size={20} />
+                    </div>
                     <div>
                       <h4>{item.title}</h4>
-                      <p
-                        style={{
-                          fontSize: "12px",
-                          color: "#888",
-                          maxWidth: "280px",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {item.description || item.message}
-                      </p>
+                      <p>{item.description || item.message}</p>
                     </div>
                   </div>
 
                   <div>
-                    <span
-                      style={{
-                        background: "#2a2a2a",
-                        padding: "4px 8px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        color: "#D4AF37",
-                        fontWeight: "500",
-                      }}
-                    >
+                    <span className="branch-badge">
+                      <MapPin size={12} style={{ marginRight: "4px" }} />
+                      {item.branch || "All Branches"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="update-category">
                       {item.type || item.category || "SERVICE"}
                     </span>
                   </div>
 
                   <div>
-                    <span style={{ fontSize: "12px", color: "#ccc" }}>
-                      📅 {item.date || "N/A"} • 🕒 {item.time || "N/A"}
+                    <span style={{ fontSize: "13px", color: "#B8B8B8" }}>
+                      📅 {item.date || "N/A"} <br /> 🕒 {item.time || "N/A"}
                     </span>
                   </div>
 
-                  <div>
-                    {item.important ? (
-                      <span
-                        style={{
-                          background: "rgba(255, 68, 68, 0.2)",
-                          color: "#ff4444",
-                          padding: "3px 8px",
-                          borderRadius: "4px",
-                          fontSize: "11px",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        IMPORTANT
-                      </span>
-                    ) : (
-                      <span style={{ color: "#666", fontSize: "12px" }}>Normal</span>
-                    )}
-                  </div>
-
-                  <div className="actions">
-                    <button
-                      className="approve-btn"
-                      title="Edit"
-                      onClick={() => openEditModal(item)}
-                    >
-                      <Pencil size={15} />
+                  <div className="update-actions">
+                    <button className="edit-btn" title="Edit" onClick={() => openEditModal(item)}>
+                      <Pencil size={16} />
                     </button>
-
-                    <button
-                      className="reject-btn"
-                      title="Delete"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      <Trash2 size={15} />
+                    <button className="delete-btn" title="Delete" onClick={() => handleDelete(item.id)}>
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </section>
+        </div>
 
-        {/* Add/Edit Modal */}
+        {/* Add / Edit Modal */}
         {showModal && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.8)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-              padding: "20px",
-            }}
-          >
-            <div
-              style={{
-                background: "#161616",
-                border: "1px solid #333",
-                borderRadius: "16px",
-                padding: "24px",
-                width: "100%",
-                maxWidth: "480px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "20px",
-                }}
-              >
-                <h2 style={{ fontSize: "18px", color: "#fff" }}>
-                  {editingItem ? "Edit Announcement" : "New Announcement"}
-                </h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#888",
-                    cursor: "pointer",
-                  }}
-                >
+          <div className="update-modal-overlay">
+            <div className="update-modal">
+              <div className="update-modal-header">
+                <h2>{editingItem ? "Edit Announcement" : "New Announcement"}</h2>
+                <button onClick={() => setShowModal(false)}>
                   <X size={20} />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} style={{ display: "grid", gap: "14px" }}>
-                <div>
-                  <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Holy Communion Service"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    style={{
-                      width: "100%",
-                      background: "#222",
-                      border: "1px solid #333",
-                      color: "#fff",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      outline: "none",
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                    Description
-                  </label>
-                  <textarea
-                    rows={3}
-                    required
-                    placeholder="Announcement details..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    style={{
-                      width: "100%",
-                      background: "#222",
-                      border: "1px solid #333",
-                      color: "#fff",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      outline: "none",
-                      resize: "none",
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <form onSubmit={handleSubmit}>
+                <div className="update-modal-body">
                   <div>
-                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                      Category / Type
+                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" }}>
+                      Target Branch
                     </label>
                     <select
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                      style={{
-                        width: "100%",
-                        background: "#222",
-                        border: "1px solid #333",
-                        color: "#fff",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        outline: "none",
-                      }}
+                      value={formData.branch}
+                      onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
                     >
-                      <option value="SERVICE">SERVICE</option>
-                      <option value="YOUTH">YOUTH</option>
-                      <option value="PRAYER">PRAYER</option>
-                      <option value="EVENT">EVENT</option>
-                      <option value="NOTICE">NOTICE</option>
+                      {BRANCHES.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div>
-                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                      Badge Label
-                    </label>
+                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" }}>Title</label>
                     <input
                       type="text"
-                      placeholder="e.g. NEW / URGENT"
-                      value={formData.badge}
-                      onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
-                      style={{
-                        width: "100%",
-                        background: "#222",
-                        border: "1px solid #333",
-                        color: "#fff",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        outline: "none",
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                      Date
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Sunday, 26 July"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      style={{
-                        width: "100%",
-                        background: "#222",
-                        border: "1px solid #333",
-                        color: "#fff",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        outline: "none",
-                      }}
+                      required
+                      placeholder="e.g. Sunday Service Time Change"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     />
                   </div>
 
                   <div>
-                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>
-                      Time
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="6:00 PM"
-                      value={formData.time}
-                      onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                      style={{
-                        width: "100%",
-                        background: "#222",
-                        border: "1px solid #333",
-                        color: "#fff",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        outline: "none",
-                      }}
+                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" }}>Description</label>
+                    <textarea
+                      rows={3}
+                      required
+                      placeholder="Announcement details..."
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     />
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div>
+                      <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" }}>Category</label>
+                      <select
+                        value={formData.type}
+                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      >
+                        <option value="SERVICE">SERVICE</option>
+                        <option value="YOUTH">YOUTH</option>
+                        <option value="PRAYER">PRAYER</option>
+                        <option value="EVENT">EVENT</option>
+                        <option value="NOTICE">NOTICE</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" }}>Badge Label</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. NEW / URGENT"
+                        value={formData.badge}
+                        onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div>
+                      <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" }}>Date</label>
+                      <input
+                        type="text"
+                        placeholder="Sunday, 26 July"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "6px" }}>Time</label>
+                      <input
+                        type="text"
+                        placeholder="6:00 PM"
+                        value={formData.time}
+                        onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input
+                      type="checkbox"
+                      id="important"
+                      checked={formData.important}
+                      onChange={(e) => setFormData({ ...formData, important: e.target.checked })}
+                      style={{ cursor: "pointer", width: "auto" }}
+                    />
+                    <label htmlFor="important" style={{ fontSize: "13px", color: "#fff", cursor: "pointer" }}>
+                      Mark as Important Announcement
+                    </label>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
-                  <input
-                    type="checkbox"
-                    id="important"
-                    checked={formData.important}
-                    onChange={(e) => setFormData({ ...formData, important: e.target.checked })}
-                    style={{ cursor: "pointer" }}
-                  />
-                  <label htmlFor="important" style={{ fontSize: "13px", color: "#fff", cursor: "pointer" }}>
-                    Mark as Important Announcement
-                  </label>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    style={{
-                      background: "#2a2a2a",
-                      color: "#fff",
-                      border: "none",
-                      padding: "8px 16px",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                    }}
-                  >
+                <div className="update-modal-footer">
+                  <button type="button" className="cancel-btn" onClick={() => setShowModal(false)}>
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    style={{
-                      background: "#D4AF37",
-                      color: "#000",
-                      fontWeight: "bold",
-                      border: "none",
-                      padding: "8px 16px",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                    }}
-                  >
+                  <button type="submit" className="save-btn">
                     {editingItem ? "Update" : "Publish"}
                   </button>
                 </div>

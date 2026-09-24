@@ -43,6 +43,7 @@ import {
   FileSpreadsheet,
   Calendar,
   Megaphone,
+  Building2,
 } from "lucide-react";
 
 import { db } from "../firebase/firebase";
@@ -57,6 +58,8 @@ const FUND_COLORS = {
   "Mission Fund": "#22c55e",   // Green
 };
 
+const BRANCHES = ["All Branches", "Dombivli", "Mulund", "Bhandup"];
+
 function Dashboard() {
   const today = new Date();
 
@@ -67,6 +70,7 @@ function Dashboard() {
     year: "numeric",
   });
 
+  const [selectedBranch, setSelectedBranch] = useState("All Branches");
   const [offerings, setOfferings] = useState([]);
   const [updatingId, setUpdatingId] = useState("");
 
@@ -108,10 +112,18 @@ function Dashboard() {
   const [chartData, setChartData] = useState([]);
   const [fundPieData, setFundPieData] = useState([]);
 
-  // Calculate Fund Breakdown Totals for CA Summary
+  // Filter offerings based on selected branch FIRST
+  const branchFilteredOfferings = useMemo(() => {
+    if (selectedBranch === "All Branches") return offerings;
+    return offerings.filter(
+      (item) => item.branch?.toLowerCase() === selectedBranch.toLowerCase()
+    );
+  }, [offerings, selectedBranch]);
+
+  // Calculate Fund Breakdown Totals for CA Summary based on selected branch
   const fundTotalsSummary = useMemo(() => {
     const totals = { Tithe: 0, "Sunday Offering": 0, "Building Fund": 0, "Mission Fund": 0 };
-    offerings.forEach((item) => {
+    branchFilteredOfferings.forEach((item) => {
       if (item.status === "Approved") {
         const amt = Number(item.amount || 0);
         const f = item.fund ? item.fund.trim() : "Tithe";
@@ -123,7 +135,7 @@ function Dashboard() {
       }
     });
     return totals;
-  }, [offerings]);
+  }, [branchFilteredOfferings]);
 
   async function approveOffering(id) {
     try {
@@ -218,13 +230,13 @@ function Dashboard() {
     }
   }
 
-  function calculateStats(data) {
+  function calculateStats(dataList) {
     let totalAmount = 0;
     let approved = 0;
     let pending = 0;
     let rejected = 0;
 
-    data.forEach((item) => {
+    dataList.forEach((item) => {
       if (item.status === "Approved") {
         totalAmount += Number(item.amount || 0);
         approved++;
@@ -237,14 +249,14 @@ function Dashboard() {
 
     setStats({
       totalAmount,
-      totalOfferings: data.length,
+      totalOfferings: dataList.length,
       approved,
       pending,
       rejected,
     });
   }
 
-  function processFundPieData(offeringsDocs) {
+  function processFundPieData(dataList) {
     const allowedFunds = ["Tithe", "Sunday Offering", "Building Fund", "Mission Fund"];
     const fundTotals = {
       Tithe: 0,
@@ -253,8 +265,7 @@ function Dashboard() {
       "Mission Fund": 0,
     };
 
-    offeringsDocs.forEach((docSnap) => {
-      const item = docSnap.data();
+    dataList.forEach((item) => {
       if (item.status === "Approved") {
         const rawFund = item.fund ? item.fund.trim() : "";
         const amount = Number(item.amount || 0);
@@ -281,7 +292,7 @@ function Dashboard() {
     setFundPieData(formattedPieData);
   }
 
-  function processChartData(offeringsDocs) {
+  function processChartData(dataList) {
     const months = [];
     const now = new Date();
 
@@ -296,8 +307,7 @@ function Dashboard() {
       });
     }
 
-    offeringsDocs.forEach((docSnap) => {
-      const item = docSnap.data();
+    dataList.forEach((item) => {
       if (item.status === "Approved" && item.createdAt?.toDate) {
         const itemDate = item.createdAt.toDate();
         const itemMonth = itemDate.getMonth();
@@ -320,8 +330,7 @@ function Dashboard() {
     );
   }
 
-  async function loadOverview() {
-    const offeringsSnap = await getDocs(collection(db, "offerings"));
+  async function loadOverview(dataList) {
     const usersSnap = await getDocs(collection(db, "users"));
     const eventsSnap = await getDocs(collection(db, "events"));
 
@@ -334,8 +343,7 @@ function Dashboard() {
     let todayOfferings = 0;
     let monthlyGiving = 0;
 
-    offeringsSnap.forEach((docSnap) => {
-      const item = docSnap.data();
+    dataList.forEach((item) => {
       const amount = Number(item.amount || 0);
 
       if (item.status === "Approved") {
@@ -357,15 +365,35 @@ function Dashboard() {
       }
     });
 
-    processChartData(offeringsSnap);
-    processFundPieData(offeringsSnap);
+    processChartData(dataList);
+    processFundPieData(dataList);
+
+    // Filter members count by branch if needed
+    let totalMembers = 0;
+    usersSnap.forEach((uDoc) => {
+      const uData = uDoc.data();
+      if (
+        selectedBranch === "All Branches" ||
+        uData.branch?.toLowerCase() === selectedBranch.toLowerCase()
+      ) {
+        totalMembers++;
+      }
+    });
 
     let nextEvent = null;
     const todayDateStr = now.toISOString().split("T")[0];
 
     const futureEvents = eventsSnap.docs
       .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-      .filter((evt) => evt.date >= todayDateStr)
+      .filter((evt) => {
+        const matchesDate = evt.date >= todayDateStr;
+        const matchesBranch =
+          selectedBranch === "All Branches" ||
+          !evt.branch ||
+          evt.branch === "All" ||
+          evt.branch?.toLowerCase() === selectedBranch.toLowerCase();
+        return matchesDate && matchesBranch;
+      })
       .sort((a, b) => (a.date > b.date ? 1 : -1));
 
     if (futureEvents.length > 0) {
@@ -375,24 +403,27 @@ function Dashboard() {
     setOverview({
       todayGiving,
       todayOfferings,
-      members: usersSnap.size,
+      members: totalMembers,
       monthlyGiving,
       upcomingEvent: nextEvent,
     });
   }
 
   function exportApprovedOfferingsCSV() {
-    const approvedList = offerings.filter((item) => item.status === "Approved");
+    const approvedList = branchFilteredOfferings.filter((item) => item.status === "Approved");
 
     if (approvedList.length === 0) {
       toast.error("No Approved offerings available to export.");
       return;
     }
 
-    const headers = ["Member Name,Fund,Amount (INR),Date,Payment Method,Status,Transaction ID"];
+    // Headers array as separate columns
+    const headers = ["Member Name", "Branch", "Fund", "Amount (INR)", "Date", "Payment Method", "Status", "Transaction ID"];
+    
     const rows = approvedList.map((item) =>
       [
         `"${item.name || "Member"}"`,
+        `"${item.branch || "General"}"`,
         `"${item.fund || "N/A"}"`,
         item.amount || 0,
         `"${item.date || ""}"`,
@@ -402,11 +433,11 @@ function Dashboard() {
       ].join(",")
     );
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `EEFF_CA_Audit_Ledger_${Date.now()}.csv`);
+    link.setAttribute("download", `EEFF_${selectedBranch}_CA_Audit_Ledger_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -427,17 +458,19 @@ function Dashboard() {
       }));
 
       setOfferings(data);
-      calculateStats(data);
-      loadOverview();
     });
-
-    loadOverview();
 
     return () => unsubscribe();
   }, []);
 
+  // Recalculate stats & overview whenever branch selection or offerings change
+  useEffect(() => {
+    calculateStats(branchFilteredOfferings);
+    loadOverview(branchFilteredOfferings);
+  }, [branchFilteredOfferings, selectedBranch]);
+
   const filteredOfferings = useMemo(() => {
-    return offerings.filter((offering) => {
+    return branchFilteredOfferings.filter((offering) => {
       const matchesSearch =
         offering.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         offering.fund?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -448,7 +481,7 @@ function Dashboard() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [offerings, searchQuery, statusFilter]);
+  }, [branchFilteredOfferings, searchQuery, statusFilter]);
 
   const isAllSelected =
     filteredOfferings.length > 0 &&
@@ -479,6 +512,8 @@ function Dashboard() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            flexWrap: "wrap",
+            gap: "15px"
           }}
         >
           <div>
@@ -486,24 +521,60 @@ function Dashboard() {
             <p>{formattedDate} · Ebenezer Faith Fellowship</p>
           </div>
 
-          <button
-            onClick={exportApprovedOfferingsCSV}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: "#D4AF37",
-              color: "#000",
-              fontWeight: "600",
-              border: "none",
-              padding: "10px 16px",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontSize: "14px",
-            }}
-          >
-            <Download size={18} /> Export CSV
-          </button>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            {/* BRANCH SELECTOR DROPDOWN */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "#1e1e1e",
+                border: "1px solid #D4AF37",
+                padding: "8px 14px",
+                borderRadius: "10px",
+              }}
+            >
+              <Building2 size={18} color="#D4AF37" />
+              <select
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#fff",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  outline: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {BRANCHES.map((branch) => (
+                  <option key={branch} value={branch} style={{ background: "#1a1a1a", color: "#fff" }}>
+                    {branch}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={exportApprovedOfferingsCSV}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "#D4AF37",
+                color: "#000",
+                fontWeight: "600",
+                border: "none",
+                padding: "10px 16px",
+                borderRadius: "10px",
+                cursor: "pointer",
+                fontSize: "14px",
+              }}
+            >
+              <Download size={18} /> Export CSV
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -516,7 +587,7 @@ function Dashboard() {
             </div>
             <h2>₹{stats.totalAmount.toLocaleString()}</h2>
             <h4>Total Giving</h4>
-            <p>Approved offerings received</p>
+            <p>{selectedBranch} approved offerings</p>
           </div>
 
           <div className="stat-card">
@@ -655,7 +726,9 @@ function Dashboard() {
             >
               <div>
                 <h2>Recent Offerings</h2>
-                <span>Latest transactions ({stats.totalOfferings} Total)</span>
+                <span>
+                  {selectedBranch} transactions ({stats.totalOfferings} Total)
+                </span>
               </div>
 
               <div
@@ -736,7 +809,7 @@ function Dashboard() {
               <div
                 className="table-head"
                 style={{
-                  gridTemplateColumns: "40px 1.5fr 1fr 1fr 1fr 1fr 1fr",
+                  gridTemplateColumns: "40px 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr",
                 }}
               >
                 <span style={{ cursor: "pointer" }} onClick={toggleSelectAll}>
@@ -747,6 +820,7 @@ function Dashboard() {
                   )}
                 </span>
                 <span>Member</span>
+                <span>Branch</span>
                 <span>Fund</span>
                 <span>Amount</span>
                 <span>Date</span>
@@ -756,7 +830,7 @@ function Dashboard() {
 
               {filteredOfferings.length === 0 ? (
                 <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
-                  No offerings matched your filter.
+                  No offerings found for {selectedBranch}.
                 </div>
               ) : (
                 filteredOfferings.map((offering, index) => {
@@ -767,7 +841,7 @@ function Dashboard() {
                       key={offering.id || index}
                       className="table-row"
                       style={{
-                        gridTemplateColumns: "40px 1.5fr 1fr 1fr 1fr 1fr 1fr",
+                        gridTemplateColumns: "40px 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr",
                         backgroundColor: isChecked ? "rgba(212, 175, 55, 0.05)" : "transparent",
                       }}
                     >
@@ -790,6 +864,21 @@ function Dashboard() {
                           <h4>{offering.name || "Member"}</h4>
                           <p>{offering.paymentMethod}</p>
                         </div>
+                      </div>
+
+                      <div>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            background: "#2a2a2a",
+                            color: "#D4AF37",
+                            border: "1px solid #444",
+                          }}
+                        >
+                          {offering.branch || "General"}
+                        </span>
                       </div>
 
                       <div>{offering.fund || "Tithe"}</div>
@@ -844,7 +933,7 @@ function Dashboard() {
               <div className="card-header">
                 <div>
                   <h2>Quick Overview</h2>
-                  <span>Church activity</span>
+                  <span>{selectedBranch} Activity</span>
                 </div>
               </div>
 
@@ -878,7 +967,7 @@ function Dashboard() {
                 <div className="overview-item">
                   <div>
                     <h4>Members</h4>
-                    <p>Registered Members</p>
+                    <p>Registered ({selectedBranch})</p>
                   </div>
                   <h3>{overview.members}</h3>
                 </div>
@@ -896,9 +985,7 @@ function Dashboard() {
             {/* VERSE MANAGER COMPONENT */}
             <VerseManager />
 
-            {/* ==========================================
-               FINANCIAL AUDIT SUMMARY CARD (FOR CA)
-               ========================================== */}
+            {/* FINANCIAL AUDIT SUMMARY CARD (FOR CA) */}
             <div
               style={{
                 backgroundColor: "#1e1e1e",
@@ -944,7 +1031,7 @@ function Dashboard() {
               </div>
 
               <p style={{ color: "#888", fontSize: "12px", margin: "0 0 16px 0", lineHeight: "1.4" }}>
-                Financial breakdown for tax compliance, 80G documentation, and accounting.
+                Financial breakdown for tax compliance, 80G documentation, and accounting ({selectedBranch}).
               </p>
 
               {/* Fund Metrics Grid */}
@@ -1044,81 +1131,17 @@ function Dashboard() {
                 <Download size={16} /> Download CA Audit Ledger
               </button>
             </div>
-
-            {/* ==========================================
-               QUICK ADMIN CONTROLS CARD
-               ========================================== */}
-            <div
-              style={{
-                backgroundColor: "#1e1e1e",
-                borderRadius: "16px",
-                border: "1px solid #333",
-                padding: "18px",
-              }}
-            >
-              <h3
-                style={{
-                  color: "#fff",
-                  margin: "0 0 12px 0",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                }}
-              >
-                ⚡ Quick Admin Controls
-              </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <button
-                  onClick={() => (window.location.href = "#/events")}
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: "10px",
-                    background: "#2A241A",
-                    color: "#D4AF37",
-                    border: "1px solid #54431D",
-                    fontWeight: "600",
-                    fontSize: "12px",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
-                >
-                  <Calendar size={15} /> + Schedule New Church Event
-                </button>
-                <button
-                  onClick={() => (window.location.href = "#/updates")}
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: "10px",
-                    background: "#252525",
-                    color: "#ccc",
-                    border: "1px solid #383838",
-                    fontWeight: "600",
-                    fontSize: "12px",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
-                >
-                  <Megaphone size={15} /> + Post Announcement / Notice
-                </button>
-              </div>
-            </div>
-
           </div>
         </div>
 
-        {/* BOTTOM SECTION WITH BOTH CHARTS ALWAYS VISIBLE */}
+        {/* BOTTOM SECTION WITH BOTH CHARTS */}
         <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "20px" }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
             
             {/* Monthly Giving Trend */}
             <section style={{ flex: "1 1 450px", backgroundColor: "#1e1e1e", padding: "20px", borderRadius: "16px", border: "1px solid #333" }}>
               <div className="card-header">
-                <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#fff" }}>Monthly Giving Trend</h2>
+                <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#fff" }}>Monthly Giving Trend ({selectedBranch})</h2>
               </div>
 
               <div style={{ width: "100%", height: 220, marginTop: "15px" }}>
@@ -1148,17 +1171,17 @@ function Dashboard() {
               </div>
             </section>
 
-            {/* FUND BREAKDOWN DONUT CHART - STRICTLY 4 FUNDS */}
+            {/* FUND BREAKDOWN DONUT CHART */}
             <section style={{ flex: "1 1 450px", backgroundColor: "#1e1e1e", padding: "20px", borderRadius: "16px", border: "1px solid #333" }}>
               <div className="card-header" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <PieIcon size={18} color="#D4AF37" />
-                <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#fff", margin: 0 }}>Fund Breakdown</h2>
+                <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#fff", margin: 0 }}>Fund Breakdown ({selectedBranch})</h2>
               </div>
 
               <div style={{ width: "100%", height: 220, marginTop: "15px" }}>
                 {fundPieData.length === 0 ? (
                   <div style={{ color: "#888", textAlign: "center", paddingTop: "80px", fontSize: "13px" }}>
-                    No approved fund data available.
+                    No approved fund data available for {selectedBranch}.
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">

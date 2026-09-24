@@ -17,11 +17,12 @@ import {
   FileText,
   Printer,
   XCircle,
+  Building2,
 } from "lucide-react";
 
 import { db } from "../firebase/firebase";
 import AdminLayout from "../layouts/AdminLayout";
-import "../styles/dashboard.css";
+import "../styles/offerings.css";
 
 function Offerings() {
   const [offerings, setOfferings] = useState([]);
@@ -30,6 +31,11 @@ function Offerings() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+
+  // Branch Filter (Defaults to localStorage selection or 'All Branches')
+  const [selectedBranch, setSelectedBranch] = useState(
+    localStorage.getItem("selectedBranch") || "All Branches"
+  );
 
   // Selected receipt state
   const [selectedReceipt, setSelectedReceipt] = useState(null);
@@ -104,9 +110,15 @@ function Offerings() {
       const matchesStatus =
         statusFilter === "All" || offering.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      // Filter by selected Branch
+      const matchesBranch =
+        selectedBranch === "All Branches" ||
+        offering.branch?.toLowerCase() === selectedBranch.toLowerCase() ||
+        (!offering.branch && selectedBranch === "Dombivli");
+
+      return matchesSearch && matchesStatus && matchesBranch;
     });
-  }, [offerings, searchQuery, statusFilter]);
+  }, [offerings, searchQuery, statusFilter, selectedBranch]);
 
   function handlePrintReceipt() {
     window.print();
@@ -115,103 +127,107 @@ function Offerings() {
   return (
     <AdminLayout>
       <Toaster position="top-right" />
-      <div className="dashboard-page">
+      <div className="offerings-page">
         {/* Header */}
-        <div className="dashboard-header">
+        <div className="offerings-header">
           <div>
             <h1>Offerings Management</h1>
-            <p>Review and verify church member offerings</p>
+            <p>
+              Review and verify church member offerings (
+              <span style={{ color: "#D1A83D", fontWeight: "bold" }}>
+                {selectedBranch}
+              </span>
+              )
+            </p>
           </div>
         </div>
 
-        {/* Recent Card / Table */}
-        <section className="recent-card">
-          <div
-            className="card-header"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}
-          >
-            <div>
-              <h2>All Transactions</h2>
-              <span>Live Firestore Records</span>
-            </div>
-
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  background: "#1e1e1e",
-                  padding: "6px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid #333",
-                }}
-              >
-                <Search size={16} color="#888" style={{ marginRight: "6px" }} />
-                <input
-                  type="text"
-                  placeholder="Search txnid, name, fund..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#fff",
-                    outline: "none",
-                    fontSize: "13px",
-                    width: "180px",
-                  }}
-                />
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  background: "#1e1e1e",
-                  padding: "6px 10px",
-                  borderRadius: "8px",
-                  border: "1px solid #333",
-                }}
-              >
-                <Filter size={14} color="#888" style={{ marginRight: "6px" }} />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#fff",
-                    outline: "none",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <option value="All" style={{ background: "#1a1a1a" }}>
-                    All Status
-                  </option>
-                  <option value="Approved" style={{ background: "#1a1a1a" }}>
-                    Approved
-                  </option>
-                  <option value="Pending" style={{ background: "#1a1a1a" }}>
-                    Pending
-                  </option>
-                  <option value="Rejected" style={{ background: "#1a1a1a" }}>
-                    Rejected
-                  </option>
-                </select>
-              </div>
-            </div>
+        {/* Search & Branch Toolbar */}
+        <div className="offerings-toolbar">
+          <div className="search-offering">
+            <Search size={18} />
+            <input
+              type="text"
+              placeholder="Search txnid, name, fund..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
 
-          <div className="offering-table">
-            <div className="table-head">
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            {/* Branch Filter Dropdown */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: "#171717",
+                padding: "0 14px",
+                height: "56px",
+                borderRadius: "18px",
+                border: "1px solid rgba(255,255,255,.06)",
+              }}
+            >
+              <Building2 size={16} color="#D1A83D" style={{ marginRight: "8px" }} />
+              <select
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#fff",
+                  outline: "none",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                }}
+              >
+                <option value="All Branches" style={{ background: "#171717" }}>All Branches</option>
+                <option value="Dombivli" style={{ background: "#171717" }}>Dombivli</option>
+                <option value="Mulund" style={{ background: "#171717" }}>Mulund</option>
+                <option value="Bhandup" style={{ background: "#171717" }}>Bhandup</option>
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: "#171717",
+                padding: "0 14px",
+                height: "56px",
+                borderRadius: "18px",
+                border: "1px solid rgba(255,255,255,.06)",
+              }}
+            >
+              <Filter size={16} color="#8B94A5" style={{ marginRight: "8px" }} />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#fff",
+                  outline: "none",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="All" style={{ background: "#171717" }}>All Status</option>
+                <option value="Approved" style={{ background: "#171717" }}>Approved</option>
+                <option value="Pending" style={{ background: "#171717" }}>Pending</option>
+                <option value="Rejected" style={{ background: "#171717" }}>Rejected</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Transactions Table Card */}
+        <section className="offerings-card">
+          <div className="offerings-table">
+            <div className="offerings-head">
               <span>Member</span>
+              <span>Branch</span>
               <span>Fund</span>
               <span>Amount</span>
               <span>Date</span>
@@ -221,33 +237,41 @@ function Offerings() {
             </div>
 
             {loading ? (
-              <div style={{ padding: "30px", textAlign: "center", color: "#888" }}>
-                Loading Offerings...
-              </div>
+              <div className="loading-box">Loading Offerings...</div>
             ) : filteredOfferings.length === 0 ? (
-              <div style={{ padding: "30px", textAlign: "center", color: "#888" }}>
-                No offerings found.
+              <div className="loading-box">
+                No offerings found for {selectedBranch}.
               </div>
             ) : (
               filteredOfferings.map((item) => (
-                <div key={item.id} className="table-row">
-                  <div className="member-cell">
+                <div key={item.id} className="offerings-row">
+                  <div className="member-info">
                     <div className="member-avatar">
                       {item.name?.charAt(0).toUpperCase() || "M"}
                     </div>
-                    <div>
+                    <div className="member-details">
                       <h4>{item.name || "Member"}</h4>
                       <p>{item.paymentMethod || "UPI"}</p>
                     </div>
                   </div>
 
-                  <div>{item.fund || "General Offering"}</div>
-
-                  <div className="amount" style={{ color: "#D4AF37" }}>
-                    ₹{item.amount}
+                  <div>
+                    <span className="branch-tag">
+                      {item.branch || "Dombivli"}
+                    </span>
                   </div>
 
-                  <div>{item.date || "N/A"}</div>
+                  <div className="fund-tag">
+                    {item.fund || "General Offering"}
+                  </div>
+
+                  <div className="amount">
+                    ₹{Number(item.amount || 0).toLocaleString()}
+                  </div>
+
+                  <div className="date-tag">
+                    {item.date || "N/A"}
+                  </div>
 
                   <div>
                     <span
@@ -259,46 +283,37 @@ function Offerings() {
                           : "pending"
                       }`}
                     >
-                      {item.status}
+                      {item.status || "Pending"}
                     </span>
                   </div>
 
                   {/* Receipt Modal Trigger */}
                   <div>
                     <button
+                      className="receipt-btn"
                       onClick={() => setSelectedReceipt(item)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        background: "#222",
-                        border: "1px solid #333",
-                        color: "#D4AF37",
-                        padding: "5px 10px",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                      }}
                     >
                       <FileText size={14} /> Receipt
                     </button>
                   </div>
 
-                  <div className="actions">
+                  <div className="row-actions">
                     <button
                       className="approve-btn"
                       disabled={updatingId === item.id}
                       onClick={() => approveOffering(item.id)}
+                      title="Approve"
                     >
-                      <Check size={16} />
+                      <Check size={18} />
                     </button>
 
                     <button
                       className="reject-btn"
                       disabled={updatingId === item.id}
                       onClick={() => rejectOffering(item.id)}
+                      title="Reject"
                     >
-                      <X size={16} />
+                      <X size={18} />
                     </button>
                   </div>
                 </div>
@@ -309,222 +324,90 @@ function Offerings() {
 
         {/* Printable Official Receipt Modal */}
         {selectedReceipt && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.85)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-              padding: "20px",
-            }}
-          >
+          <div className="offering-modal-overlay">
             <div
-              className="printable-receipt-container"
-              style={{
-                background: "#121212",
-                border: "1px solid #333",
-                borderRadius: "16px",
-                padding: "24px",
-                width: "100%",
-                maxWidth: "420px",
-                color: "#fff",
-                boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
-              }}
+              className="offering-modal printable-receipt-container"
+              style={{ width: "440px" }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  borderBottom: "1px solid #222",
-                  paddingBottom: "12px",
-                  marginBottom: "16px",
-                }}
-              >
-                <h3 style={{ fontSize: "16px", color: "#D4AF37", margin: 0 }}>
+              <div className="modal-header">
+                <h3 style={{ color: "#D1A83D", fontSize: "16px", margin: 0, fontWeight: "700" }}>
                   OFFICIAL OFFERING RECEIPT
                 </h3>
-                <button
-                  onClick={() => setSelectedReceipt(null)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#888",
-                    cursor: "pointer",
-                  }}
-                >
+                <button onClick={() => setSelectedReceipt(null)}>
                   <XCircle size={20} />
                 </button>
               </div>
 
               {/* Printable Body */}
-              <div id="receipt-print-area">
+              <div id="receipt-print-area" className="modal-body">
                 <div style={{ textAlign: "center", marginBottom: "20px" }}>
-                  <h2
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      color: "#fff",
-                      marginBottom: "2px",
-                    }}
-                  >
+                  <h2 style={{ fontSize: "20px", fontWeight: "bold", color: "#fff", margin: 0 }}>
                     Ebenezer Faith Fellowship
                   </h2>
-                  <p style={{ fontSize: "12px", color: "#888", margin: 0 }}>
-                    Dombivli Church Branch • Official Receipt
+                  <p style={{ fontSize: "12px", color: "#8B94A5", marginTop: "4px" }}>
+                    {selectedReceipt.branch || "Dombivli"} Church Branch • Official Receipt
                   </p>
                 </div>
 
-                <div
-                  style={{
-                    background: "#1a1a1a",
-                    borderRadius: "12px",
-                    padding: "16px",
-                    marginBottom: "16px",
-                    border: "1px solid #2a2a2a",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "10px",
-                      fontSize: "13px",
-                    }}
-                  >
-                    <span style={{ color: "#888" }}>Status</span>
-                    <strong
-                      style={{
-                        color:
-                          selectedReceipt.status === "Approved"
-                            ? "#4caf50"
-                            : selectedReceipt.status === "Rejected"
-                            ? "#f44336"
-                            : "#ff9800",
-                      }}
-                    >
-                      {selectedReceipt.status}
+                <div style={{ background: "#1D1D1D", borderRadius: "14px", padding: "16px", marginBottom: "16px", border: "1px solid #282828" }}>
+                  <div className="detail-row">
+                    <span>Status</span>
+                    <strong style={{ color: selectedReceipt.status === "Approved" ? "#39D98A" : selectedReceipt.status === "Rejected" ? "#FF5C67" : "#FFB64D" }}>
+                      {selectedReceipt.status || "Pending"}
                     </strong>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "10px",
-                      fontSize: "13px",
-                    }}
-                  >
-                    <span style={{ color: "#888" }}>Member Name</span>
+                  <div className="detail-row">
+                    <span>Member Name</span>
                     <strong>{selectedReceipt.name || "Member"}</strong>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "10px",
-                      fontSize: "13px",
-                    }}
-                  >
-                    <span style={{ color: "#888" }}>Fund Category</span>
+                  <div className="detail-row">
+                    <span>Church Branch</span>
+                    <strong style={{ color: "#D1A83D" }}>
+                      {selectedReceipt.branch || "Dombivli"}
+                    </strong>
+                  </div>
+
+                  <div className="detail-row">
+                    <span>Fund Category</span>
                     <strong>{selectedReceipt.fund || "General Offering"}</strong>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "10px",
-                      fontSize: "13px",
-                    }}
-                  >
-                    <span style={{ color: "#888" }}>Date</span>
+                  <div className="detail-row">
+                    <span>Date</span>
                     <strong>{selectedReceipt.date || "N/A"}</strong>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "10px",
-                      fontSize: "13px",
-                    }}
-                  >
-                    <span style={{ color: "#888" }}>Payment Mode</span>
+                  <div className="detail-row">
+                    <span>Payment Mode</span>
                     <strong>{selectedReceipt.paymentMethod || "UPI"}</strong>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "13px",
-                    }}
-                  >
-                    <span style={{ color: "#888" }}>Transaction ID</span>
-                    <strong style={{ fontSize: "11px", wordBreak: "break-all" }}>
+                  <div className="detail-row" style={{ borderBottom: "none" }}>
+                    <span>Transaction ID</span>
+                    <strong style={{ fontSize: "12px", wordBreak: "break-all" }}>
                       {selectedReceipt.transactionId || selectedReceipt.id}
                     </strong>
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "12px",
-                    background: "rgba(212, 175, 55, 0.1)",
-                    borderRadius: "10px",
-                    border: "1px dashed #D4AF37",
-                  }}
-                >
-                  <span style={{ fontSize: "12px", color: "#aaa" }}>Total Amount</span>
-                  <h1 style={{ color: "#D4AF37", fontSize: "28px", margin: "4px 0 0 0" }}>
+                <div style={{ textAlign: "center", padding: "14px", background: "rgba(209, 168, 61, 0.08)", borderRadius: "12px", border: "1px dashed #D1A83D" }}>
+                  <span style={{ fontSize: "12px", color: "#8B94A5" }}>Total Amount</span>
+                  <h1 style={{ color: "#D1A83D", fontSize: "30px", margin: "4px 0 0 0", fontWeight: "800" }}>
                     ₹{Number(selectedReceipt.amount || 0).toLocaleString()}
                   </h1>
                 </div>
 
-                <p
-                  style={{
-                    textAlign: "center",
-                    fontSize: "11px",
-                    color: "#666",
-                    marginTop: "16px",
-                  }}
-                >
+                <p style={{ textAlign: "center", fontSize: "11px", color: "#666", marginTop: "16px", fontStyle: "italic" }}>
                   "God loves a cheerful giver." — 2 Corinthians 9:7
                 </p>
               </div>
 
               {/* Action Buttons */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  marginTop: "20px",
-                }}
-              >
-                <button
-                  onClick={handlePrintReceipt}
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    background: "#D4AF37",
-                    color: "#000",
-                    fontWeight: "bold",
-                    border: "none",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <Printer size={16} /> Print / Save PDF
+              <div className="modal-footer">
+                <button className="approve-btn" onClick={handlePrintReceipt}>
+                  <Printer size={18} /> Print / Save PDF
                 </button>
               </div>
             </div>

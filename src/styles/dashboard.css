@@ -113,6 +113,18 @@
     border-color:rgba(255,153,51,.20);
 }
 
+.stat-icon.red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.stat-icon.green {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
 .stat-badge{
     padding:6px 12px;
     border-radius:999px;
@@ -198,6 +210,7 @@
 .card-header button:hover{
     transform:translateX(4px);
 }
+
 /* ==========================================
    EEFF ADMIN DASHBOARD
    Part 2/3
@@ -214,7 +227,7 @@
 .table-head,
 .table-row{
     display:grid;
-    grid-template-columns:2.2fr 1fr .8fr .8fr 1fr .9fr;
+    grid-template-columns: 40px 1.5fr 1fr 1fr 1fr 1fr 1fr;
     align-items:center;
     gap:18px;
     padding:20px 28px;
@@ -301,6 +314,12 @@
     border:1px solid rgba(255,177,77,.22);
 }
 
+.status.rejected{
+    background:rgba(220,53,69,.12);
+    color:#ff6b81;
+    border:1px solid rgba(220,53,69,.25);
+}
+
 .actions{
     display:flex;
     align-items:center;
@@ -330,6 +349,13 @@
 .approve-btn:hover,
 .reject-btn:hover{
     transform:translateY(-3px);
+}
+
+.approve-btn:disabled,
+.reject-btn:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+    transform: none;
 }
 
 /* ==========================
@@ -371,6 +397,13 @@
     font-size:1.25rem;
     font-weight:800;
 }
+
+.quick-overview-sidebar {
+    position: sticky;
+    top: 20px;
+    align-self: flex-start;
+}
+
 /* ==========================================
    EEFF ADMIN DASHBOARD
    Part 3/3
@@ -381,9 +414,11 @@
 ========================== */
 
 .dashboard-bottom{
-    display:grid;
-    grid-template-columns:2fr 1fr;
-    gap:24px;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+    height: auto !important;
+    overflow: visible !important;
 }
 
 /* ==========================
@@ -452,7 +487,7 @@
 }
 
 /* ==========================
-   CHART
+   CHART / MONTHLY GIVING TREND
 ========================== */
 
 .chart-placeholder{
@@ -499,6 +534,12 @@
 .h90{height:90%;}
 .h100{height:100%;}
 
+/* Recharts Text & Axis Colors Fix (For Black text visibility on dark background) */
+.dashboard-page .recharts-cartesian-axis-tick-value,
+.dashboard-page text {
+  fill: #aaa !important;
+}
+
 /* ==========================
    RESPONSIVE
 ========================== */
@@ -509,8 +550,7 @@
         grid-template-columns:repeat(2,1fr);
     }
 
-    .dashboard-main,
-    .dashboard-bottom{
+    .dashboard-main{
         grid-template-columns:1fr;
     }
 
@@ -572,49 +612,4 @@
         width:26px;
     }
 
-}
-.status.rejected{
-
-    background:rgba(220,53,69,.12);
-
-    color:#ff6b81;
-
-    border:1px solid rgba(220,53,69,.25);
-
-}
-
-.approve-btn:disabled,
-.reject-btn:disabled{
-
-    opacity:.45;
-
-    cursor:not-allowed;
-
-}
-.stat-icon.red {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-}
-
-.stat-icon.green {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-}
-.offering-table .table-head,
-.offering-table .table-row {
-  display: grid;
-  grid-template-columns: 40px 1.5fr 1fr 1fr 1fr 1fr 1fr;
-  align-items: center;
-}
-.dashboard-bottom {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 20px !important;
-  height: auto !important;
-  overflow: visible !important;
-}
-.quick-overview-sidebar {
-    position: sticky;
-    top: 20px;
-    align-self: flex-start;
 }

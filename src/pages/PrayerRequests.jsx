@@ -3,11 +3,14 @@ import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } fro
 import { db } from "../firebase/firebase";
 import AdminLayout from "../layouts/AdminLayout";
 import toast, { Toaster } from "react-hot-toast";
-import { Heart, CheckCircle, Trash2, Clock } from "lucide-react";
+import { Heart, CheckCircle, Trash2, Clock, MapPin } from "lucide-react";
+
+const BRANCHES = ["All Branches", "Dombivli", "Mulund", "Bhandup"];
 
 function PrayerRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBranch, setSelectedBranch] = useState("All Branches");
 
   useEffect(() => {
     const q = query(collection(db, "prayer_requests"), orderBy("createdAt", "desc"));
@@ -46,26 +49,62 @@ function PrayerRequests() {
     }
   };
 
+  // Branch Filtering
+  const filteredRequests = requests.filter((req) => {
+    if (selectedBranch === "All Branches") return true;
+    return (req.branch || "Dombivli") === selectedBranch;
+  });
+
   return (
     <AdminLayout>
       <Toaster position="top-right" />
       <div style={{ padding: "0 0 40px 0", maxWidth: "900px" }}>
         
         {/* Header */}
-        <div style={{ marginBottom: "24px" }}>
+        <div style={{ marginBottom: "20px" }}>
           <h1 style={{ color: "#fff", margin: 0, fontSize: "24px", fontWeight: 700 }}>
             Prayer Requests
           </h1>
           <p style={{ color: "#888", fontSize: "14px", margin: "4px 0 0 0" }}>
-            View and pray for church members' submitted requests.
+            View and pray for church members' submitted requests across branches.
           </p>
+        </div>
+
+        {/* Branch Filter Tabs */}
+        <div style={{
+          display: "flex",
+          gap: "8px",
+          marginBottom: "20px",
+          overflowX: "auto",
+          paddingBottom: "4px"
+        }}>
+          {BRANCHES.map((branch) => (
+            <button
+              key={branch}
+              onClick={() => setSelectedBranch(branch)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: "99px",
+                border: selectedBranch === branch ? "1px solid #D4AF37" : "1px solid #27272a",
+                backgroundColor: selectedBranch === branch ? "rgba(212, 175, 55, 0.15)" : "#18181b",
+                color: selectedBranch === branch ? "#D4AF37" : "#888",
+                fontSize: "13px",
+                fontWeight: "600",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "all 0.2s"
+              }}
+            >
+              {branch}
+            </button>
+          ))}
         </div>
 
         {loading ? (
           <div style={{ color: "#888", textAlign: "center", padding: "40px" }}>
             Loading prayer requests...
           </div>
-        ) : requests.length === 0 ? (
+        ) : filteredRequests.length === 0 ? (
           <div style={{
             backgroundColor: "#18181b",
             border: "1px solid #27272a",
@@ -75,12 +114,14 @@ function PrayerRequests() {
             color: "#888"
           }}>
             <Heart size={40} color="#D4AF37" style={{ marginBottom: "12px" }} />
-            <h3>No Prayer Requests Yet</h3>
-            <p style={{ fontSize: "13px" }}>Submitted requests from members will appear here.</p>
+            <h3>No Prayer Requests Found</h3>
+            <p style={{ fontSize: "13px" }}>
+              No requests submitted for {selectedBranch === "All Branches" ? "any branch" : `${selectedBranch} Branch`} yet.
+            </p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {requests.map((item) => (
+            {filteredRequests.map((item) => (
               <div
                 key={item.id}
                 style={{
@@ -94,14 +135,33 @@ function PrayerRequests() {
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <strong style={{ color: "#fff", fontSize: "15px" }}>{item.userName}</strong>
-                    {item.userEmail && (
-                      <span style={{ color: "#888", fontSize: "12px", marginLeft: "8px" }}>
-                        ({item.userEmail})
-                      </span>
-                    )}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div>
+                      <strong style={{ color: "#fff", fontSize: "15px" }}>{item.userName}</strong>
+                      {item.userEmail && (
+                        <span style={{ color: "#888", fontSize: "12px", marginLeft: "8px" }}>
+                          ({item.userEmail})
+                        </span>
+                      )}
+                    </div>
+                    {/* Branch Tag */}
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      padding: "3px 8px",
+                      borderRadius: "6px",
+                      fontSize: "11px",
+                      fontWeight: "600",
+                      backgroundColor: "rgba(212, 175, 55, 0.1)",
+                      color: "#D4AF37",
+                      border: "1px solid rgba(212, 175, 55, 0.2)"
+                    }}>
+                      <MapPin size={10} />
+                      {item.branch || "Dombivli"}
+                    </span>
                   </div>
+
                   <span style={{
                     padding: "4px 10px",
                     borderRadius: "99px",

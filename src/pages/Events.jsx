@@ -19,6 +19,7 @@ import {
   Trash2,
   X,
   UserCheck,
+  Building2,
 } from "lucide-react";
 
 import { db } from "../firebase/firebase";
@@ -32,10 +33,14 @@ function Events() {
   const [showModal, setShowModal] = useState(false);
   const [selectedAttendees, setSelectedAttendees] = useState(null);
 
+  // Branch filter state for Admin Panel view
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState("All");
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "SPECIAL SERVICE",
+    branch: "Dombivli", // Default branch for new event
     date: "",
     time: "6:00 PM - 8:00 PM",
     location: "Main Church Sanctuary",
@@ -72,6 +77,7 @@ function Events() {
       title: "",
       description: "",
       category: "SPECIAL SERVICE",
+      branch: "Dombivli",
       date: new Date().toLocaleDateString("en-IN"),
       time: "6:00 PM - 8:00 PM",
       location: "Main Church Sanctuary",
@@ -112,6 +118,16 @@ function Events() {
     }
   }
 
+  // Filter events based on Admin's selected branch filter dropdown
+  const filteredEvents = useMemo(() => {
+    if (selectedBranchFilter === "All") return events;
+    return events.filter(
+      (ev) =>
+        (ev.branch || "Dombivli").toLowerCase() ===
+        selectedBranchFilter.toLowerCase()
+    );
+  }, [events, selectedBranchFilter]);
+
   return (
     <AdminLayout>
       <Toaster position="top-right" />
@@ -123,30 +139,49 @@ function Events() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            flexWrap: "wrap",
+            gap: "16px",
           }}
         >
           <div>
             <h1>Church Events & RSVP Management</h1>
-            <p>Organize events and track member attendance</p>
+            <p>Organize events and track member attendance across branches</p>
           </div>
 
-          <button
-            onClick={openAddModal}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "#D4AF37",
-              color: "#000",
-              fontWeight: "600",
-              border: "none",
-              padding: "10px 16px",
-              borderRadius: "10px",
-              cursor: "pointer",
-            }}
-          >
-            <Plus size={18} /> Create Event
-          </button>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            {/* Branch Filter Dropdown for Admin */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#181818", border: "1px solid #333", padding: "8px 12px", borderRadius: "10px" }}>
+              <Building2 size={16} color="#D4AF37" />
+              <select
+                value={selectedBranchFilter}
+                onChange={(e) => setSelectedBranchFilter(e.target.value)}
+                style={{ background: "transparent", color: "#fff", border: "none", outline: "none", cursor: "pointer", fontSize: "13px" }}
+              >
+                <option value="All" style={{ background: "#181818" }}>All Branches</option>
+                <option value="Dombivli" style={{ background: "#181818" }}>Dombivli</option>
+                <option value="Mulund" style={{ background: "#181818" }}>Mulund</option>
+                <option value="Bhandup" style={{ background: "#181818" }}>Bhandup</option>
+              </select>
+            </div>
+
+            <button
+              onClick={openAddModal}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "#D4AF37",
+                color: "#000",
+                fontWeight: "600",
+                border: "none",
+                padding: "10px 16px",
+                borderRadius: "10px",
+                cursor: "pointer",
+              }}
+            >
+              <Plus size={18} /> Create Event
+            </button>
+          </div>
         </div>
 
         {/* Event Cards Grid */}
@@ -155,7 +190,7 @@ function Events() {
             <div style={{ padding: "40px", textAlign: "center", color: "#888" }}>
               Loading Church Events...
             </div>
-          ) : events.length === 0 ? (
+          ) : filteredEvents.length === 0 ? (
             <div
               style={{
                 backgroundColor: "#181818",
@@ -168,7 +203,7 @@ function Events() {
               <Calendar size={36} color="#444" style={{ marginBottom: "10px" }} />
               <h3 style={{ color: "#ccc", margin: 0 }}>No Active Events</h3>
               <p style={{ color: "#666", fontSize: "13px", marginTop: "4px" }}>
-                Click 'Create Event' to publish an upcoming service or youth program.
+                No events found for {selectedBranchFilter === "All" ? "any branch" : `${selectedBranchFilter} branch`}. Click 'Create Event' to add one.
               </p>
             </div>
           ) : (
@@ -179,7 +214,7 @@ function Events() {
                 gap: "20px",
               }}
             >
-              {events.map((item) => {
+              {filteredEvents.map((item) => {
                 const attendees = item.attendees || [];
 
                 return (
@@ -204,18 +239,32 @@ function Events() {
                           marginBottom: "12px",
                         }}
                       >
-                        <span
-                          style={{
-                            background: "rgba(212, 175, 55, 0.15)",
-                            color: "#D4AF37",
-                            padding: "4px 10px",
-                            borderRadius: "20px",
-                            fontSize: "11px",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {item.category || "SPECIAL SERVICE"}
-                        </span>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <span
+                            style={{
+                              background: "rgba(212, 175, 55, 0.15)",
+                              color: "#D4AF37",
+                              padding: "4px 10px",
+                              borderRadius: "20px",
+                              fontSize: "11px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {item.category || "SPECIAL SERVICE"}
+                          </span>
+                          <span
+                            style={{
+                              background: "rgba(59, 130, 246, 0.15)",
+                              color: "#60a5fa",
+                              padding: "4px 10px",
+                              borderRadius: "20px",
+                              fontSize: "11px",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {item.branch || "Dombivli"}
+                          </span>
+                        </div>
 
                         <button
                           onClick={() => handleDelete(item.id)}
@@ -354,14 +403,17 @@ function Events() {
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                   <div>
-                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Date</label>
-                    <input
-                      type="text"
-                      placeholder="Sunday, 26 July"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Branch</label>
+                    <select
+                      value={formData.branch}
+                      onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
                       style={{ width: "100%", background: "#222", border: "1px solid #333", color: "#fff", padding: "10px", borderRadius: "8px", outline: "none" }}
-                    />
+                    >
+                      <option value="Dombivli">Dombivli</option>
+                      <option value="Mulund">Mulund</option>
+                      <option value="Bhandup">Bhandup</option>
+                      <option value="All">All Branches</option>
+                    </select>
                   </div>
 
                   <div>
@@ -376,6 +428,30 @@ function Events() {
                       <option value="WORSHIP NIGHT">WORSHIP NIGHT</option>
                       <option value="SPECIAL PROGRAM">SPECIAL PROGRAM</option>
                     </select>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Date</label>
+                    <input
+                      type="text"
+                      placeholder="Sunday, 26 July"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      style={{ width: "100%", background: "#222", border: "1px solid #333", color: "#fff", padding: "10px", borderRadius: "8px", outline: "none" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: "12px", color: "#aaa", display: "block", marginBottom: "4px" }}>Time</label>
+                    <input
+                      type="text"
+                      placeholder="6:00 PM - 8:00 PM"
+                      value={formData.time}
+                      onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                      style={{ width: "100%", background: "#222", border: "1px solid #333", color: "#fff", padding: "10px", borderRadius: "8px", outline: "none" }}
+                    />
                   </div>
                 </div>
 

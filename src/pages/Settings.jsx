@@ -13,16 +13,28 @@ import {
   MapPin,
 } from "lucide-react";
 
+// Updated to Dombivli, Bhandup, and Mulund only
+const BRANCH_OPTIONS = [
+  { id: "dombivli", name: "Dombivli Branch" },
+  { id: "bhandup", name: "Bhandup Branch" },
+  { id: "mulund", name: "Mulund Branch" },
+];
+
 function Settings() {
   const currentUser = auth.currentUser;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  // Default selected branch
+  const [selectedBranch, setSelectedBranch] = useState("dombivli");
 
-  // Form States
+  // Form States (Added sundayService & location)
   const [churchInfo, setChurchInfo] = useState({
     name: "Ebenezer Faith Fellowship",
     address: "Dombivli, Maharashtra",
     pastorName: "Pastor Mark Tribhuvan",
+    sundayService: "Every Sunday • 6:00 PM",
+    location: "Ryan International School, Dombivli",
     contactEmail: "admin@eeff.org",
     contactPhone: "+91 98765 43210",
     registrationNo: "EEFF/TRUST/2024/01",
@@ -30,7 +42,7 @@ function Settings() {
   });
 
   const [paymentSettings, setPaymentSettings] = useState({
-    upiId: "eeffdi@idfcbank",
+    upiId: "8291642816@yespop",
     merchantName: "Ebenezer Faith Fellowship",
     upiNumber: "9876543210",
   });
@@ -45,48 +57,69 @@ function Settings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // Load Saved Settings from Firestore
+  // Load Saved Settings from Firestore based on Selected Branch
   useEffect(() => {
     async function loadSettings() {
+      setLoading(true);
       try {
-        const docRef = doc(db, "settings", "general");
+        const docRef = doc(db, "settings", `branch_${selectedBranch}`);
         const docSnap = await getDoc(docRef);
+        
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.churchInfo) {
             setChurchInfo((prev) => ({
               ...prev,
               ...data.churchInfo,
-              // Force default Dombivli if missing or old Kalyan address
-              address: data.churchInfo.address || "Dombivli, Maharashtra",
             }));
           }
           if (data.paymentSettings) {
             setPaymentSettings((prev) => ({
               ...prev,
               ...data.paymentSettings,
-              upiId: data.paymentSettings.upiId || "eeffdi@idfcbank",
             }));
           }
-          if (data.systemToggles) setSystemToggles(data.systemToggles);
+          if (data.systemToggles) {
+            setSystemToggles(data.systemToggles);
+          }
+        } else {
+          // Fallback defaults if document doesn't exist yet for this branch
+          setChurchInfo({
+            name: `Ebenezer Faith Fellowship (${selectedBranch.toUpperCase()})`,
+            address: `${selectedBranch.charAt(0).toUpperCase() + selectedBranch.slice(1)}, Maharashtra`,
+            pastorName: "Pastor Mark Tribhuvan",
+            sundayService: "Every Sunday • 6:00 PM",
+            location: `Ryan International School, ${selectedBranch.charAt(0).toUpperCase() + selectedBranch.slice(1)}`,
+            contactEmail: "admin@eeff.org",
+            contactPhone: "+91 98765 43210",
+            registrationNo: "EEFF/TRUST/2024/01",
+            taxExempt80G: "80G/TRUST/2024-25/123",
+          });
+          setPaymentSettings({
+            upiId: "8291642816@yespop",
+            merchantName: "Ebenezer Faith Fellowship",
+            upiNumber: "9876543210",
+          });
         }
       } catch (err) {
         console.error("Error loading settings:", err);
+        toast.error("Failed to load settings.");
       } finally {
         setLoading(false);
       }
     }
     loadSettings();
-  }, []);
+  }, [selectedBranch]);
 
-  // Save General Settings
+  // Save General Settings to Branch Document
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
       await setDoc(
-        doc(db, "settings", "general"),
+        doc(db, "settings", `branch_${selectedBranch}`),
         {
+          branchId: selectedBranch,
           churchInfo,
           paymentSettings,
           systemToggles,
@@ -95,7 +128,7 @@ function Settings() {
         { merge: true }
       );
 
-      toast.success("Settings updated successfully! 🎉");
+      toast.success(`${selectedBranch.toUpperCase()} Branch Settings updated successfully! 🎉`);
     } catch (err) {
       console.error(err);
       toast.error("Failed to save settings!");
@@ -138,26 +171,46 @@ function Settings() {
     <AdminLayout>
       <Toaster position="top-right" />
       <div style={{ padding: "0 0 40px 0", maxWidth: "900px" }}>
-        {/* Header */}
-        <div style={{ marginBottom: "24px" }}>
-          <h1
-            style={{
-              color: "#fff",
-              margin: 0,
-              fontSize: "24px",
-              fontWeight: 700,
-            }}
-          >
-            System Settings
-          </h1>
-          <p style={{ color: "#888", fontSize: "14px", margin: "4px 0 0 0" }}>
-            Manage church profile, payment integration, and admin portal security.
-          </p>
+        {/* Header & Branch Selector */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
+          <div>
+            <h1 style={{ color: "#fff", margin: 0, fontSize: "24px", fontWeight: 700 }}>
+              System Settings
+            </h1>
+            <p style={{ color: "#888", fontSize: "14px", margin: "4px 0 0 0" }}>
+              Manage branch-wise profile, payment integration, and controls.
+            </p>
+          </div>
+
+          {/* Branch Switcher Dropdown (Dombivli, Bhandup, Mulund) */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#1e1e1e", padding: "8px 14px", borderRadius: "12px", border: "1px solid #333" }}>
+            <MapPin size={16} color="#D4AF37" />
+            <span style={{ color: "#aaa", fontSize: "13px" }}>Editing Branch:</span>
+            <select
+              value={selectedBranch}
+              onChange={(e) => setSelectedBranch(e.target.value)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#D4AF37",
+                fontWeight: "700",
+                fontSize: "14px",
+                outline: "none",
+                cursor: "pointer",
+              }}
+            >
+              {BRANCH_OPTIONS.map((branch) => (
+                <option key={branch.id} value={branch.id} style={{ background: "#1e1e1e", color: "#fff" }}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {loading ? (
           <div style={{ padding: "40px 0", color: "#888", textAlign: "center" }}>
-            Loading system settings...
+            Loading {selectedBranch} branch settings...
           </div>
         ) : (
           <form
@@ -168,15 +221,8 @@ function Settings() {
             <div style={cardStyle}>
               <div style={cardHeaderStyle}>
                 <Church size={20} color="#D4AF37" />
-                <h3
-                  style={{
-                    color: "#fff",
-                    margin: 0,
-                    fontSize: "16px",
-                    fontWeight: 600,
-                  }}
-                >
-                  Church Profile & CA Registration
+                <h3 style={{ color: "#fff", margin: 0, fontSize: "16px", fontWeight: 600 }}>
+                  Church Profile & CA Registration ({selectedBranch.toUpperCase()})
                 </h3>
               </div>
 
@@ -206,6 +252,32 @@ function Settings() {
                 </div>
 
                 <div>
+                  <label style={labelStyle}>Sunday Service Timing</label>
+                  <input
+                    type="text"
+                    value={churchInfo.sundayService}
+                    onChange={(e) =>
+                      setChurchInfo({ ...churchInfo, sundayService: e.target.value })
+                    }
+                    placeholder="e.g. Every Sunday • 6:00 PM"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Location / Venue</label>
+                  <input
+                    type="text"
+                    value={churchInfo.location}
+                    onChange={(e) =>
+                      setChurchInfo({ ...churchInfo, location: e.target.value })
+                    }
+                    placeholder="e.g. Ryan International School, Dombivli"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
                   <label style={labelStyle}>Contact Address / City</label>
                   <input
                     type="text"
@@ -219,9 +291,7 @@ function Settings() {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>
-                    Trust Registration No. (For CA/Audit)
-                  </label>
+                  <label style={labelStyle}>Trust Registration No. (For CA/Audit)</label>
                   <input
                     type="text"
                     value={churchInfo.registrationNo}
@@ -280,21 +350,14 @@ function Settings() {
             <div style={cardStyle}>
               <div style={cardHeaderStyle}>
                 <QrCode size={20} color="#D4AF37" />
-                <h3
-                  style={{
-                    color: "#fff",
-                    margin: 0,
-                    fontSize: "16px",
-                    fontWeight: 600,
-                  }}
-                >
-                  UPI & Online Giving Settings
+                <h3 style={{ color: "#fff", margin: 0, fontSize: "16px", fontWeight: 600 }}>
+                  UPI & Online Giving Settings ({selectedBranch.toUpperCase()})
                 </h3>
               </div>
 
               <div style={gridTwoStyle}>
                 <div>
-                  <label style={labelStyle}>Church Official UPI ID</label>
+                  <label style={labelStyle}>Branch Official UPI ID</label>
                   <input
                     type="text"
                     value={paymentSettings.upiId}
@@ -304,15 +367,13 @@ function Settings() {
                         upiId: e.target.value,
                       })
                     }
-                    placeholder="e.g. eeffdi@idfcbank"
+                    placeholder="e.g. 8291642816@yespop"
                     style={inputStyle}
                   />
                 </div>
 
                 <div>
-                  <label style={labelStyle}>
-                    Merchant Name (As on Bank Account)
-                  </label>
+                  <label style={labelStyle}>Merchant Name (As on Bank Account)</label>
                   <input
                     type="text"
                     value={paymentSettings.merchantName}
@@ -332,35 +393,19 @@ function Settings() {
             <div style={cardStyle}>
               <div style={cardHeaderStyle}>
                 <Globe size={20} color="#D4AF37" />
-                <h3
-                  style={{
-                    color: "#fff",
-                    margin: 0,
-                    fontSize: "16px",
-                    fontWeight: 600,
-                  }}
-                >
-                  App Features & Controls
+                <h3 style={{ color: "#fff", margin: 0, fontSize: "16px", fontWeight: 600 }}>
+                  App Features & Controls ({selectedBranch.toUpperCase()})
                 </h3>
               </div>
 
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "14px" }}
-              >
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                 <label style={toggleContainerStyle}>
                   <div>
-                    <span
-                      style={{
-                        color: "#fff",
-                        fontWeight: 500,
-                        fontSize: "14px",
-                        display: "block",
-                      }}
-                    >
+                    <span style={{ color: "#fff", fontWeight: 500, fontSize: "14px", display: "block" }}>
                       Auto-Approve New Members
                     </span>
                     <span style={{ color: "#888", fontSize: "12px" }}>
-                      Automatically accept new user registrations on the church app.
+                      Automatically accept new user registrations on this branch app.
                     </span>
                   </div>
                   <input
@@ -378,18 +423,11 @@ function Settings() {
 
                 <label style={toggleContainerStyle}>
                   <div>
-                    <span
-                      style={{
-                        color: "#fff",
-                        fontWeight: 500,
-                        fontSize: "14px",
-                        display: "block",
-                      }}
-                    >
+                    <span style={{ color: "#fff", fontWeight: 500, fontSize: "14px", display: "block" }}>
                       Maintenance Mode
                     </span>
                     <span style={{ color: "#888", fontSize: "12px" }}>
-                      Temporarily disable new offering submissions on member app.
+                      Temporarily disable new offering submissions for this branch.
                     </span>
                   </div>
                   <input
@@ -410,7 +448,7 @@ function Settings() {
             {/* SAVE BUTTON */}
             <button type="submit" disabled={saving} style={saveBtnStyle}>
               <Save size={18} />
-              {saving ? "Saving Changes..." : "Save Settings"}
+              {saving ? "Saving Changes..." : `Save ${selectedBranch.toUpperCase()} Settings`}
             </button>
           </form>
         )}
@@ -419,14 +457,7 @@ function Settings() {
         <div style={{ ...cardStyle, marginTop: "24px" }}>
           <div style={cardHeaderStyle}>
             <Lock size={20} color="#ef4444" />
-            <h3
-              style={{
-                color: "#fff",
-                margin: 0,
-                fontSize: "16px",
-                fontWeight: 600,
-              }}
-            >
+            <h3 style={{ color: "#fff", margin: 0, fontSize: "16px", fontWeight: 600 }}>
               Admin Security (Change Password)
             </h3>
           </div>
@@ -479,7 +510,7 @@ function Settings() {
   );
 }
 
-// INLINE STYLES FOR CLEAN LOOK
+// STYLES
 const cardStyle = {
   backgroundColor: "#1e1e1e",
   border: "1px solid #333",
