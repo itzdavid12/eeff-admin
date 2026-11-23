@@ -28,7 +28,6 @@ import {
 import {
   Heart,
   Clock,
-  ArrowRight,
   Check,
   X,
   Search,
@@ -41,8 +40,6 @@ import {
   AlertTriangle,
   PieChart as PieIcon,
   FileSpreadsheet,
-  Calendar,
-  Megaphone,
   Building2,
 } from "lucide-react";
 
@@ -52,10 +49,10 @@ import "../styles/dashboard.css";
 
 // STRICT COLOR MAPPING FOR THE 4 APP FUNDS ONLY
 const FUND_COLORS = {
-  Tithe: "#D4AF37",           // Gold
-  "Sunday Offering": "#a855f7",// Purple
-  "Building Fund": "#3b82f6",  // Blue
-  "Mission Fund": "#22c55e",   // Green
+  Tithe: "#D4AF37",            // Gold
+  "Sunday Offering": "#a855f7", // Purple
+  "Building Fund": "#3b82f6",   // Blue
+  "Mission Fund": "#22c55e",    // Green
 };
 
 const BRANCHES = ["All Branches", "Dombivli", "Mulund", "Bhandup"];
@@ -72,6 +69,7 @@ function Dashboard() {
 
   const [selectedBranch, setSelectedBranch] = useState("All Branches");
   const [offerings, setOfferings] = useState([]);
+  const [userPhotosMap, setUserPhotosMap] = useState({});
   const [updatingId, setUpdatingId] = useState("");
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -112,6 +110,29 @@ function Dashboard() {
   const [chartData, setChartData] = useState([]);
   const [fundPieData, setFundPieData] = useState([]);
 
+  // Sync user profile photos from users collection
+  useEffect(() => {
+    const unsubUsers = onSnapshot(
+      collection(db, "users"),
+      (snap) => {
+        const map = {};
+        snap.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const photo = data.photoBase64 || data.photoURL || "";
+          if (photo) {
+            map[docSnap.id] = photo;
+          }
+        });
+        setUserPhotosMap(map);
+      },
+      (err) => {
+        console.warn("Dashboard user photos sync warning:", err);
+      }
+    );
+
+    return () => unsubUsers();
+  }, []);
+
   // Filter offerings based on selected branch FIRST
   const branchFilteredOfferings = useMemo(() => {
     if (selectedBranch === "All Branches") return offerings;
@@ -122,7 +143,12 @@ function Dashboard() {
 
   // Calculate Fund Breakdown Totals for CA Summary based on selected branch
   const fundTotalsSummary = useMemo(() => {
-    const totals = { Tithe: 0, "Sunday Offering": 0, "Building Fund": 0, "Mission Fund": 0 };
+    const totals = {
+      Tithe: 0,
+      "Sunday Offering": 0,
+      "Building Fund": 0,
+      "Mission Fund": 0,
+    };
     branchFilteredOfferings.forEach((item) => {
       if (item.status === "Approved") {
         const amt = Number(item.amount || 0);
@@ -257,7 +283,12 @@ function Dashboard() {
   }
 
   function processFundPieData(dataList) {
-    const allowedFunds = ["Tithe", "Sunday Offering", "Building Fund", "Mission Fund"];
+    const allowedFunds = [
+      "Tithe",
+      "Sunday Offering",
+      "Building Fund",
+      "Mission Fund",
+    ];
     const fundTotals = {
       Tithe: 0,
       "Sunday Offering": 0,
@@ -368,7 +399,6 @@ function Dashboard() {
     processChartData(dataList);
     processFundPieData(dataList);
 
-    // Filter members count by branch if needed
     let totalMembers = 0;
     usersSnap.forEach((uDoc) => {
       const uData = uDoc.data();
@@ -410,16 +440,26 @@ function Dashboard() {
   }
 
   function exportApprovedOfferingsCSV() {
-    const approvedList = branchFilteredOfferings.filter((item) => item.status === "Approved");
+    const approvedList = branchFilteredOfferings.filter(
+      (item) => item.status === "Approved"
+    );
 
     if (approvedList.length === 0) {
       toast.error("No Approved offerings available to export.");
       return;
     }
 
-    // Headers array as separate columns
-    const headers = ["Member Name", "Branch", "Fund", "Amount (INR)", "Date", "Payment Method", "Status", "Transaction ID"];
-    
+    const headers = [
+      "Member Name",
+      "Branch",
+      "Fund",
+      "Amount (INR)",
+      "Date",
+      "Payment Method",
+      "Status",
+      "Transaction ID",
+    ];
+
     const rows = approvedList.map((item) =>
       [
         `"${item.name || "Member"}"`,
@@ -433,11 +473,16 @@ function Dashboard() {
       ].join(",")
     );
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows].join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `EEFF_${selectedBranch}_CA_Audit_Ledger_${Date.now()}.csv`);
+    link.setAttribute(
+      "download",
+      `EEFF_${selectedBranch}_CA_Audit_Ledger_${Date.now()}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -446,10 +491,7 @@ function Dashboard() {
   }
 
   useEffect(() => {
-    const q = query(
-      collection(db, "offerings"),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(collection(db, "offerings"), orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map((docSnap) => ({
@@ -463,7 +505,6 @@ function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-  // Recalculate stats & overview whenever branch selection or offerings change
   useEffect(() => {
     calculateStats(branchFilteredOfferings);
     loadOverview(branchFilteredOfferings);
@@ -474,7 +515,9 @@ function Dashboard() {
       const matchesSearch =
         offering.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         offering.fund?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        offering.paymentMethod?.toLowerCase().includes(searchQuery.toLowerCase());
+        offering.paymentMethod
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
       const matchesStatus =
         statusFilter === "All" || offering.status === statusFilter;
@@ -513,7 +556,7 @@ function Dashboard() {
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "wrap",
-            gap: "15px"
+            gap: "15px",
           }}
         >
           <div>
@@ -522,7 +565,6 @@ function Dashboard() {
           </div>
 
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            {/* BRANCH SELECTOR DROPDOWN */}
             <div
               style={{
                 display: "flex",
@@ -549,7 +591,11 @@ function Dashboard() {
                 }}
               >
                 {BRANCHES.map((branch) => (
-                  <option key={branch} value={branch} style={{ background: "#1a1a1a", color: "#fff" }}>
+                  <option
+                    key={branch}
+                    value={branch}
+                    style={{ background: "#1a1a1a", color: "#fff" }}
+                  >
                     {branch}
                   </option>
                 ))}
@@ -594,7 +640,10 @@ function Dashboard() {
             <div className="stat-top">
               <div
                 className="stat-icon green"
-                style={{ backgroundColor: "rgba(34, 197, 94, 0.15)", color: "#22c55e" }}
+                style={{
+                  backgroundColor: "rgba(34, 197, 94, 0.15)",
+                  color: "#22c55e",
+                }}
               >
                 <CheckCircle2 size={22} />
               </div>
@@ -619,7 +668,10 @@ function Dashboard() {
             <div className="stat-top">
               <div
                 className="stat-icon red"
-                style={{ backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#ef4444" }}
+                style={{
+                  backgroundColor: "rgba(239, 68, 68, 0.15)",
+                  color: "#ef4444",
+                }}
               >
                 <XCircle size={22} />
               </div>
@@ -829,24 +881,44 @@ function Dashboard() {
               </div>
 
               {filteredOfferings.length === 0 ? (
-                <div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+                <div
+                  style={{
+                    padding: "20px",
+                    textAlign: "center",
+                    color: "#888",
+                  }}
+                >
                   No offerings found for {selectedBranch}.
                 </div>
               ) : (
                 filteredOfferings.map((offering, index) => {
                   const isChecked = selectedIds.includes(offering.id);
+                  const memberName = offering.name || "Member";
+                  const memberPhoto =
+                    offering.userPhoto ||
+                    offering.photoBase64 ||
+                    offering.photoURL ||
+                    (offering.uid ? userPhotosMap[offering.uid] : "") ||
+                    "";
 
                   return (
                     <div
                       key={offering.id || index}
                       className="table-row"
                       style={{
-                        gridTemplateColumns: "40px 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr",
-                        backgroundColor: isChecked ? "rgba(212, 175, 55, 0.05)" : "transparent",
+                        gridTemplateColumns:
+                          "40px 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr",
+                        backgroundColor: isChecked
+                          ? "rgba(212, 175, 55, 0.05)"
+                          : "transparent",
                       }}
                     >
                       <div
-                        style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+                        style={{
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
                         onClick={() => toggleSelectRow(offering.id)}
                       >
                         {isChecked ? (
@@ -857,11 +929,33 @@ function Dashboard() {
                       </div>
 
                       <div className="member-cell">
-                        <div className="member-avatar">
-                          {offering.name?.charAt(0).toUpperCase() || "M"}
+                        <div
+                          className="member-avatar"
+                          style={{
+                            overflow: "hidden",
+                            flexShrink: 0,
+                            border: memberPhoto
+                              ? "1.5px solid rgba(212, 175, 55, 0.55)"
+                              : undefined,
+                          }}
+                        >
+                          {memberPhoto ? (
+                            <img
+                              src={memberPhoto}
+                              alt={memberName}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                display: "block",
+                              }}
+                            />
+                          ) : (
+                            memberName.charAt(0).toUpperCase() || "M"
+                          )}
                         </div>
                         <div>
-                          <h4>{offering.name || "Member"}</h4>
+                          <h4>{memberName}</h4>
                           <p>{offering.paymentMethod}</p>
                         </div>
                       </div>
@@ -914,7 +1008,10 @@ function Dashboard() {
                           className="reject-btn"
                           disabled={updatingId === offering.id || isBulkUpdating}
                           onClick={() =>
-                            openRejectDialog({ type: "single", id: offering.id })
+                            openRejectDialog({
+                              type: "single",
+                              id: offering.id,
+                            })
                           }
                         >
                           <X size={16} />
@@ -1030,8 +1127,16 @@ function Dashboard() {
                 </span>
               </div>
 
-              <p style={{ color: "#888", fontSize: "12px", margin: "0 0 16px 0", lineHeight: "1.4" }}>
-                Financial breakdown for tax compliance, 80G documentation, and accounting ({selectedBranch}).
+              <p
+                style={{
+                  color: "#888",
+                  fontSize: "12px",
+                  margin: "0 0 16px 0",
+                  lineHeight: "1.4",
+                }}
+              >
+                Financial breakdown for tax compliance, 80G documentation, and
+                accounting ({selectedBranch}).
               </p>
 
               {/* Fund Metrics Grid */}
@@ -1051,7 +1156,13 @@ function Dashboard() {
                     border: "1px solid #282828",
                   }}
                 >
-                  <span style={{ color: "#888", fontSize: "11px", display: "block" }}>
+                  <span
+                    style={{
+                      color: "#888",
+                      fontSize: "11px",
+                      display: "block",
+                    }}
+                  >
                     Tithe (दशमांश)
                   </span>
                   <strong style={{ color: "#D4AF37", fontSize: "15px" }}>
@@ -1067,7 +1178,13 @@ function Dashboard() {
                     border: "1px solid #282828",
                   }}
                 >
-                  <span style={{ color: "#888", fontSize: "11px", display: "block" }}>
+                  <span
+                    style={{
+                      color: "#888",
+                      fontSize: "11px",
+                      display: "block",
+                    }}
+                  >
                     Sunday Offering
                   </span>
                   <strong style={{ color: "#a855f7", fontSize: "15px" }}>
@@ -1083,7 +1200,13 @@ function Dashboard() {
                     border: "1px solid #282828",
                   }}
                 >
-                  <span style={{ color: "#888", fontSize: "11px", display: "block" }}>
+                  <span
+                    style={{
+                      color: "#888",
+                      fontSize: "11px",
+                      display: "block",
+                    }}
+                  >
                     Building Fund
                   </span>
                   <strong style={{ color: "#3b82f6", fontSize: "15px" }}>
@@ -1099,7 +1222,13 @@ function Dashboard() {
                     border: "1px solid #282828",
                   }}
                 >
-                  <span style={{ color: "#888", fontSize: "11px", display: "block" }}>
+                  <span
+                    style={{
+                      color: "#888",
+                      fontSize: "11px",
+                      display: "block",
+                    }}
+                  >
                     Mission Fund
                   </span>
                   <strong style={{ color: "#22c55e", fontSize: "15px" }}>
@@ -1115,7 +1244,8 @@ function Dashboard() {
                   width: "100%",
                   padding: "12px",
                   borderRadius: "10px",
-                  background: "linear-gradient(135deg, #D4AF37 0%, #AA820A 100%)",
+                  background:
+                    "linear-gradient(135deg, #D4AF37 0%, #AA820A 100%)",
                   color: "#0D0D0D",
                   fontWeight: "700",
                   fontSize: "13px",
@@ -1135,20 +1265,52 @@ function Dashboard() {
         </div>
 
         {/* BOTTOM SECTION WITH BOTH CHARTS */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "20px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "20px",
+            marginTop: "20px",
+          }}
+        >
           <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
-            
             {/* Monthly Giving Trend */}
-            <section style={{ flex: "1 1 450px", backgroundColor: "#1e1e1e", padding: "20px", borderRadius: "16px", border: "1px solid #333" }}>
+            <section
+              style={{
+                flex: "1 1 450px",
+                backgroundColor: "#1e1e1e",
+                padding: "20px",
+                borderRadius: "16px",
+                border: "1px solid #333",
+              }}
+            >
               <div className="card-header">
-                <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#fff" }}>Monthly Giving Trend ({selectedBranch})</h2>
+                <h2
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    color: "#fff",
+                  }}
+                >
+                  Monthly Giving Trend ({selectedBranch})
+                </h2>
               </div>
 
               <div style={{ width: "100%", height: 220, marginTop: "15px" }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData}>
-                    <XAxis dataKey="name" stroke="#888" fontSize={12} tickLine={false} />
-                    <YAxis stroke="#888" fontSize={12} tickLine={false} width={40} />
+                    <XAxis
+                      dataKey="name"
+                      stroke="#888"
+                      fontSize={12}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      stroke="#888"
+                      fontSize={12}
+                      tickLine={false}
+                      width={40}
+                    />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "#1f1f1f",
@@ -1156,13 +1318,20 @@ function Dashboard() {
                         borderRadius: "8px",
                         color: "#fff",
                       }}
-                      formatter={(value) => [`₹${value.toLocaleString()}`, "Amount"]}
+                      formatter={(value) => [
+                        `₹${value.toLocaleString()}`,
+                        "Amount",
+                      ]}
                     />
                     <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
                       {chartData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
-                          fill={index === chartData.length - 1 ? "#D4AF37" : "#3b3b3b"}
+                          fill={
+                            index === chartData.length - 1
+                              ? "#D4AF37"
+                              : "#3b3b3b"
+                          }
                         />
                       ))}
                     </Bar>
@@ -1172,15 +1341,42 @@ function Dashboard() {
             </section>
 
             {/* FUND BREAKDOWN DONUT CHART */}
-            <section style={{ flex: "1 1 450px", backgroundColor: "#1e1e1e", padding: "20px", borderRadius: "16px", border: "1px solid #333" }}>
-              <div className="card-header" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <section
+              style={{
+                flex: "1 1 450px",
+                backgroundColor: "#1e1e1e",
+                padding: "20px",
+                borderRadius: "16px",
+                border: "1px solid #333",
+              }}
+            >
+              <div
+                className="card-header"
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
                 <PieIcon size={18} color="#D4AF37" />
-                <h2 style={{ fontSize: "16px", fontWeight: "600", color: "#fff", margin: 0 }}>Fund Breakdown ({selectedBranch})</h2>
+                <h2
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    color: "#fff",
+                    margin: 0,
+                  }}
+                >
+                  Fund Breakdown ({selectedBranch})
+                </h2>
               </div>
 
               <div style={{ width: "100%", height: 220, marginTop: "15px" }}>
                 {fundPieData.length === 0 ? (
-                  <div style={{ color: "#888", textAlign: "center", paddingTop: "80px", fontSize: "13px" }}>
+                  <div
+                    style={{
+                      color: "#888",
+                      textAlign: "center",
+                      paddingTop: "80px",
+                      fontSize: "13px",
+                    }}
+                  >
                     No approved fund data available for {selectedBranch}.
                   </div>
                 ) : (
@@ -1209,7 +1405,10 @@ function Dashboard() {
                           borderRadius: "8px",
                           color: "#fff",
                         }}
-                        formatter={(value) => [`₹${value.toLocaleString()}`, "Total Received"]}
+                        formatter={(value) => [
+                          `₹${value.toLocaleString()}`,
+                          "Total Received",
+                        ]}
                       />
                       <Legend
                         verticalAlign="bottom"
@@ -1222,7 +1421,6 @@ function Dashboard() {
                 )}
               </div>
             </section>
-
           </div>
         </div>
 
@@ -1269,7 +1467,13 @@ function Dashboard() {
                 </h3>
               </div>
 
-              <p style={{ color: "#aaa", fontSize: "14px", marginBottom: "16px" }}>
+              <p
+                style={{
+                  color: "#aaa",
+                  fontSize: "14px",
+                  marginBottom: "16px",
+                }}
+              >
                 Select or enter the reason for rejecting{" "}
                 {rejectionTarget?.type === "bulk"
                   ? `${selectedIds.length} offerings`

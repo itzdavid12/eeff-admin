@@ -77,6 +77,7 @@ function Members() {
         return {
           id: userId,
           ...u,
+          profilePhoto: u.photoBase64 || u.photoURL || "",
           totalGiven,
         };
       });
@@ -239,9 +240,12 @@ function Members() {
             </div>
           </div>
 
-          {/* Members List Table without Contact column */}
+          {/* Members List Table */}
           <div className="offering-table">
-            <div className="table-head" style={{ gridTemplateColumns: "1.5fr 1fr 1fr 80px" }}>
+            <div
+              className="table-head"
+              style={{ gridTemplateColumns: "1.5fr 1fr 1fr 80px" }}
+            >
               <span>Member</span>
               <span>Joined Date</span>
               <span>Total Given</span>
@@ -264,6 +268,11 @@ function Members() {
               filteredMembers.map((member) => {
                 const name = member.displayName || member.name || "Member";
                 const email = member.email || "No Email";
+                const photo =
+                  member.profilePhoto ||
+                  member.photoBase64 ||
+                  member.photoURL ||
+                  "";
                 const joined = member.createdAt?.toDate
                   ? member.createdAt.toDate().toLocaleDateString("en-IN")
                   : member.joinedDate || "N/A";
@@ -284,10 +293,32 @@ function Members() {
                       transition: "background 0.2s ease",
                     }}
                   >
-                    {/* Member Name */}
+                    {/* Member Name & Profile Photo */}
                     <div className="member-cell">
-                      <div className="member-avatar">
-                        {name.charAt(0).toUpperCase()}
+                      <div
+                        className="member-avatar"
+                        style={{
+                          overflow: "hidden",
+                          flexShrink: 0,
+                          border: photo
+                            ? "1.5px solid rgba(212, 175, 55, 0.55)"
+                            : undefined,
+                        }}
+                      >
+                        {photo ? (
+                          <img
+                            src={photo}
+                            alt={name}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              display: "block",
+                            }}
+                          />
+                        ) : (
+                          name.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <div>
                         <h4>{name}</h4>
@@ -398,8 +429,8 @@ function Members() {
             >
               <div
                 style={{
-                  width: "52px",
-                  height: "52px",
+                  width: "56px",
+                  height: "56px",
                   borderRadius: "50%",
                   backgroundColor: "#D4AF37",
                   color: "#000",
@@ -408,15 +439,41 @@ function Members() {
                   justifyContent: "center",
                   fontSize: "22px",
                   fontWeight: "bold",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  border: "2px solid #D4AF37",
                 }}
               >
-                {(
-                  selectedMember.displayName ||
-                  selectedMember.name ||
-                  "M"
-                )
-                  .charAt(0)
-                  .toUpperCase()}
+                {selectedMember.profilePhoto ||
+                selectedMember.photoBase64 ||
+                selectedMember.photoURL ? (
+                  <img
+                    src={
+                      selectedMember.profilePhoto ||
+                      selectedMember.photoBase64 ||
+                      selectedMember.photoURL
+                    }
+                    alt={
+                      selectedMember.displayName ||
+                      selectedMember.name ||
+                      "Member"
+                    }
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  (
+                    selectedMember.displayName ||
+                    selectedMember.name ||
+                    "M"
+                  )
+                    .charAt(0)
+                    .toUpperCase()
+                )}
               </div>
 
               <div>
@@ -516,7 +573,13 @@ function Members() {
                   >
                     {fund}
                   </p>
-                  <h4 style={{ margin: "4px 0 0 0", color: "#fff", fontSize: "14px" }}>
+                  <h4
+                    style={{
+                      margin: "4px 0 0 0",
+                      color: "#fff",
+                      fontSize: "14px",
+                    }}
+                  >
                     ₹{amt.toLocaleString()}
                   </h4>
                 </div>
