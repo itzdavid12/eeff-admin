@@ -23,6 +23,7 @@ const BRANCH_OPTIONS = [
 function Settings() {
   const currentUser = auth.currentUser;
   const [loading, setLoading] = useState(true);
+
   const [saving, setSaving] = useState(false);
   
   // Default selected branch
